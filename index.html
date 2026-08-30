@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LDW Engineering — ERP</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -441,6 +444,9 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
   </div>
 </div>
 
+<!-- Hidden render target for invoice PDF generation (captured via html2canvas, never shown) -->
+<div id="invoice-render" style="position:fixed;left:-9999px;top:0;background:#fff;pointer-events:none"></div>
+
 <div id="toasts"></div>
 
 <script>
@@ -450,6 +456,21 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
 var SUPABASE_URL = 'https://idakaomdpvvrsundufbp.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkYWthb21kcHZ2cnN1bmR1ZmJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDk1OTgsImV4cCI6MjEwMzY4NTU5OH0.Wvi3tHl5u7MiSx0LUsPA-s35czYVsQGlpu0vsZhZjX8';
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════
+//  MSAL / MICROSOFT GRAPH CONFIG
+// ════════════════════════════════════════════════
+var msalConfig = {
+  auth: {
+    clientId: 'bd5baea5-3664-4073-a977-8443d1067a4e',
+    authority: 'https://login.microsoftonline.com/1f775747-bcd3-450a-ad8b-9aee8a428b5f',
+    redirectUri: 'https://apairofscissors.github.io/ERP/'
+  },
+  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+};
+var msalInstance = new msal.PublicClientApplication(msalConfig);
+var msalInitialized = null; // promise, set on first use
+var GRAPH_SCOPES = ['Mail.Send'];
 
 // ════════════════════════════════════════════════
 //  STATE
@@ -503,6 +524,160 @@ function onSignedIn(user) {
   document.getElementById('user-name').textContent  = user.user_metadata?.full_name || user.email;
   document.getElementById('user-email').textContent = user.email;
   loadClients().then(function() { loadBoard(); });
+}
+
+// ════════════════════════════════════════════════
+//  MICROSOFT GRAPH (email sending)
+// ════════════════════════════════════════════════
+async function ensureMsalInit() {
+  if (!msalInitialized) msalInitialized = msalInstance.initialize();
+  await msalInitialized;
+}
+
+// Acquires a Mail.Send access token: silent refresh first, popup sign-in as fallback.
+// Must be called directly from a user-gesture handler (e.g. a click) so the popup isn't blocked.
+async function getGraphToken() {
+  await ensureMsalInit();
+  var accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    try {
+      var silent = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: accounts[0] });
+      return silent.accessToken;
+    } catch (e) {
+      // Falls through to interactive popup below (e.g. InteractionRequiredAuthError)
+    }
+  }
+  var result = accounts.length > 0
+    ? await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES, account: accounts[0] })
+    : await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
+  return result.accessToken;
+}
+
+// Finds the client record + parent job row for an invoicing entry (invoice_data doesn't
+// reliably carry client_name/address, so we cross-reference the jobs table by job_no+revision).
+function resolveInvoiceClient(invJob) {
+  var jobRecord = jobs.find(function(j){ return j.job_no === invJob.job_no && (j.revision||'') === (invJob.revision||''); });
+  var clientName = jobRecord ? jobRecord.client_name : null;
+  var client = clients.find(function(c){ return c.name === clientName || c.client_id === invJob.client_id; });
+  return { jobRecord: jobRecord, client: client };
+}
+
+function buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate) {
+  var fmtDate = function(d){ return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); };
+  var rows = items.map(function(it) {
+    return '<tr>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222">'+esc(it.desc)+'</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#666;text-align:center">GST Free</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222;text-align:right">A$ '+(it.amt||0).toFixed(2)+'</td>' +
+    '</tr>';
+  }).join('');
+  return '' +
+  '<div style="width:760px;background:#fff;color:#222;font-family:Arial,Helvetica,sans-serif;padding:40px 44px;box-sizing:border-box">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">' +
+      '<div>' +
+        '<div style="font-size:20px;font-weight:700;color:#111">Lionghardy Design Works</div>' +
+        '<div style="font-size:11px;color:#777;letter-spacing:0.05em;margin-top:2px">LDW ENGINEERING</div>' +
+      '</div>' +
+      '<div style="text-align:right;font-size:11px;color:#555;line-height:1.6">' +
+        'Taman Kota Baloi F1 Block No 12B<br>Tanjung Uma, Batam City 29444, Indonesia<br>Phone: +62 81261574790' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:28px">' +
+      '<div>' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:6px">Bill To</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#111">'+esc(client.name)+'</div>' +
+        '<div style="font-size:12px;color:#555;margin-top:2px;max-width:260px">'+esc(client.address||'')+'</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:16px;font-weight:700;color:#111;margin-bottom:8px">INVOICE</div>' +
+        '<table style="font-size:11px;color:#555;margin-left:auto"><tbody>' +
+        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Invoice No</td><td style="padding:1px 0;text-align:right;font-weight:600;color:#222">'+esc(invNo)+'</td></tr>' +
+        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Date</td><td style="padding:1px 0;text-align:right">'+fmtDate(invDate)+'</td></tr>' +
+        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Due Date</td><td style="padding:1px 0;text-align:right">'+fmtDate(dueDate)+'</td></tr>' +
+        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Job No</td><td style="padding:1px 0;text-align:right">'+esc(job.job_no)+(job.revision?' Rev '+esc(job.revision):'')+'</td></tr>' +
+        '</tbody></table>' +
+      '</div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><thead><tr>' +
+      '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #333;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#777">Description</th>' +
+      '<th style="text-align:center;padding:8px 10px;border-bottom:2px solid #333;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#777">Taxed</th>' +
+      '<th style="text-align:right;padding:8px 10px;border-bottom:2px solid #333;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#777">Amount</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table>' +
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:32px">' +
+      '<table style="font-size:12px;color:#333;min-width:220px"><tbody>' +
+        '<tr><td style="padding:4px 10px;text-align:right;color:#777">Subtotal</td><td style="padding:4px 0;text-align:right;width:110px">A$ '+total.toFixed(2)+'</td></tr>' +
+        '<tr><td style="padding:4px 10px;text-align:right;color:#777">Tax Rate</td><td style="padding:4px 0;text-align:right">0.000%</td></tr>' +
+        '<tr><td style="padding:8px 10px;text-align:right;font-weight:700;border-top:2px solid #333;color:#111">Total</td><td style="padding:8px 0;text-align:right;font-weight:700;border-top:2px solid #333;color:#111">A$ '+total.toFixed(2)+'</td></tr>' +
+      '</tbody></table>' +
+    '</div>' +
+    '<div style="margin-bottom:36px;font-size:12px;color:#333">' +
+      '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:4px">Payment</div>' +
+      'Paypal: lionghardydesignworks@gmail.com' +
+    '</div>' +
+    '<div style="border-top:1px solid #ddd;padding-top:14px;font-size:11px;color:#777;text-align:center">' +
+      'Steven Lionghardy &nbsp;&middot;&nbsp; +6281261574790 &nbsp;&middot;&nbsp; lionghardydesignworks@gmail.com' +
+    '</div>' +
+  '</div>';
+}
+
+// Renders the invoice off-screen, rasterises it with html2canvas, then paginates into an A4 PDF.
+// Returns the PDF as a base64 string (no data: prefix) ready for a Graph fileAttachment.
+async function generateInvoicePdf(job, client, invNo, items, total, invDate, dueDate) {
+  var container = document.getElementById('invoice-render');
+  container.innerHTML = buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate);
+  await new Promise(function(r){ setTimeout(r, 60); }); // let layout/fonts settle before capture
+  var canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
+  container.innerHTML = '';
+  var imgData = canvas.toDataURL('image/jpeg', 0.92);
+  var jsPDF = window.jspdf.jsPDF;
+  var pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  var pageWidth  = pdf.internal.pageSize.getWidth();
+  var pageHeight = pdf.internal.pageSize.getHeight();
+  var imgWidth   = pageWidth;
+  var imgHeight  = canvas.height * imgWidth / canvas.width;
+  var heightLeft = imgHeight, position = 0;
+  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  return pdf.output('datauristring').split(',')[1];
+}
+
+async function sendInvoiceEmail(token, job, client, invNo, pdfBase64, total) {
+  var toRecipients = [{ emailAddress: { address: client.email_to } }];
+  var ccRecipients = client.email_cc ? [{ emailAddress: { address: client.email_cc } }] : [];
+  var bodyHtml =
+    '<p>Dear ' + esc(client.name) + ',</p>' +
+    '<p>Please find attached invoice <strong>' + esc(invNo) + '</strong> for job ' + esc(job.job_no) + (job.revision ? ' (Rev ' + esc(job.revision) + ')' : '') + ', totalling A$ ' + total.toFixed(2) + '.</p>' +
+    '<p>Kind regards,<br>Steven Lionghardy<br>Lionghardy Design Works</p>';
+  var payload = {
+    message: {
+      subject: 'Invoice ' + invNo + ' — ' + job.job_no + ' — Lionghardy Design Works',
+      body: { contentType: 'HTML', content: bodyHtml },
+      toRecipients: toRecipients,
+      ccRecipients: ccRecipients,
+      attachments: [{
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: invNo.replace(/\s+/g,'_') + '.pdf',
+        contentType: 'application/pdf',
+        contentBytes: pdfBase64
+      }]
+    },
+    saveToSentItems: true
+  };
+  var res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    var errText = await res.text();
+    throw new Error('Graph sendMail failed (' + res.status + '): ' + errText.slice(0,200));
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -918,7 +1093,7 @@ function renderInvoicing() {
     var genBtn = document.createElement('button'); genBtn.className = 'btn btn-primary btn-sm'; genBtn.innerHTML = '&#128196; Generate'; genBtn.disabled = isInv || isPaid;
     genBtn.onclick = (function(j){ return function(){ doGenerateInv(j); }; })(job);
     var sendBtn = document.createElement('button'); sendBtn.className = 'btn btn-accent btn-sm'; sendBtn.innerHTML = '&#9993; Send'; sendBtn.disabled = isPaid;
-    sendBtn.onclick = (function(j){ return function(){ doSendInv(j); }; })(job);
+    sendBtn.onclick = (function(j,btn){ return function(){ doSendInv(j, btn); }; })(job, sendBtn);
     var spacer = document.createElement('div'); spacer.style.flex = '1';
     var paidBtn = document.createElement('button'); paidBtn.className = 'btn btn-green btn-sm'; paidBtn.innerHTML = '&#10003; Mark Paid'; paidBtn.disabled = !isInv || isPaid;
     paidBtn.onclick = (function(j){ return function(){ doMarkPaid(j); }; })(job);
@@ -973,19 +1148,61 @@ function doSaveInv(job) {
 function doGenerateInv(job) {
   var items = getInvLines(job.id);
   if (!items.length || !items[0].desc) { toast('Add at least one line item', 'err'); return; }
-  var client = clients.find(function(c){ return c.name === job.client_name || c.client_id === job.client_id; });
-  var code = client ? client.code : '00';
-  getNextInvoiceNo(code).then(function(invNo) {
-    job._pendingInvNo = invNo;
-    job._pendingItems = items;
+  var resolved = resolveInvoiceClient(job);
+  if (!resolved.client) { toast('Could not match this job to a client record', 'err'); return; }
+  if (!resolved.client.email_to) { toast('Client "' + resolved.client.name + '" has no Email To set', 'err'); return; }
+  getNextInvoiceNo(resolved.client.code || '00').then(function(invNo) {
+    job._pendingInvNo   = invNo;
+    job._pendingItems   = items;
+    job._pendingClient  = resolved.client;
+    job._pendingInvDate = new Date();
     toast('Invoice ' + invNo + ' ready — click Send to email', 'ok');
   }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
-function doSendInv(job) {
+async function doSendInv(job, btnEl) {
   if (!job._pendingInvNo) { toast('Click Generate first', 'err'); return; }
-  if (!confirm('Send invoice ' + job._pendingInvNo + ' to client?')) return;
-  toast('Send invoice — coming soon', 'ok');
+  if (!confirm('Send invoice ' + job._pendingInvNo + ' to ' + job._pendingClient.email_to + '?')) return;
+
+  var origLabel = btnEl ? btnEl.innerHTML : null;
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spin"></span> Sending…'; }
+  toast('Signing in to Outlook…', 'ok');
+  try {
+    var token = await getGraphToken();
+
+    var items    = job._pendingItems;
+    var client   = job._pendingClient;
+    var invNo    = job._pendingInvNo;
+    var invDate  = job._pendingInvDate || new Date();
+    var dueDate  = new Date(invDate.getTime() + 30 * 86400000);
+    var total    = items.reduce(function(s,i){ return s + (i.amt||0); }, 0);
+
+    toast('Generating PDF…', 'ok');
+    var pdfBase64 = await generateInvoicePdf(job, client, invNo, items, total, invDate, dueDate);
+
+    toast('Sending email…', 'ok');
+    await sendInvoiceEmail(token, job, client, invNo, pdfBase64, total);
+
+    var { error: logErr } = await sb.from('invoice_log').insert({
+      invoice_no: invNo, job_no: job.job_no, revision: job.revision,
+      client_id: client.client_id, client_name: client.name,
+      date: invDate.toISOString().slice(0,10), total_amount: total,
+      status: 'Sent', payment_status: 'Invoiced'
+    });
+    if (logErr) throw logErr;
+
+    var { error: updErr } = await sb.from('invoice_data').update({ payment_status: 'Invoiced' })
+      .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1);
+    if (updErr) throw updErr;
+
+    job.payment_status = 'Invoiced';
+    delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate;
+    toast('Invoice ' + invNo + ' sent to ' + client.email_to, 'ok');
+    updateInvStats(); renderInvoicing(); // re-render rebuilds the button, so no need to restore origLabel
+  } catch (err) {
+    toast('Send failed: ' + err.message, 'err');
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = origLabel; }
+  }
 }
 
 function doMarkPaid(job) {
