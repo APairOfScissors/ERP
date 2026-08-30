@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LionghardyDesignWorks — ERP</title>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<title>LDW Engineering — ERP</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
 [data-theme="p3"]{
   --bg:#001736;--bg-mid:#00183e;--surface:#001f50;--surface2:#002060;
   --rule:#002878;--rule-mid:#003090;
@@ -40,45 +39,25 @@
   --role-bg:#FFF0C8;--role-txt:#8A5800;--role-tag:#8A4800;
   --overdue-txt:#C04000;--stat-overdue-bdr:#C04000;
 }
-
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased;transition:background 0.2s,color 0.2s}
-
-/* ── Login screen ─────────────────────────────── */
-#login-screen{
-  display:flex;align-items:center;justify-content:center;
-  min-height:100vh;background:var(--bg);
-}
-.login-card{
-  background:var(--surface);border:1px solid var(--rule-mid);
-  border-radius:16px;padding:48px 40px;text-align:center;
-  max-width:360px;width:100%;
-  box-shadow:0 24px 80px rgba(0,0,0,0.4);
-}
-.login-logo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-0.01em}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+#login-screen{display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-card{background:var(--surface);border:1px solid var(--rule-mid);border-radius:16px;padding:48px 40px;text-align:center;max-width:360px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.4)}
+.login-logo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
 .login-sub{font-size:11px;color:var(--text-soft);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:32px}
 .login-title{font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-0.02em}
 .login-desc{font-size:12px;color:var(--text-soft);margin-bottom:28px;line-height:1.6}
-.login-btn{
-  display:inline-flex;align-items:center;gap:10px;
-  background:var(--btn-primary-bg);color:var(--btn-primary-txt);
-  padding:12px 24px;border-radius:8px;border:none;
-  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
-  cursor:pointer;width:100%;justify-content:center;
-  transition:opacity 0.13s;
-}
+.login-form{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.login-form input{padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--surface2);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none}
+.login-form input:focus{border-color:var(--accent)}
+.login-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--btn-primary-bg);color:var(--btn-primary-txt);padding:11px 24px;border-radius:6px;border:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;width:100%;transition:opacity 0.13s}
 .login-btn:hover{opacity:0.88}
-.login-btn svg{width:20px;height:20px;flex-shrink:0}
-.login-error{margin-top:16px;font-size:12px;color:#ff6b6b;display:none}
-
-/* ── App shell ────────────────────────────────── */
+.login-error{margin-top:8px;font-size:11px;color:#ff6b6b;min-height:16px}
 #app-shell{display:none}
 .shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
 .main{overflow-y:auto;min-height:100vh}
 .page{display:none;padding:32px 36px}
 .page.active{display:block}
-
-/* Sidebar */
-.sidebar{background:var(--sidebar-bg);border-right:1px solid var(--sidebar-bdr);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;transition:background 0.2s}
+.sidebar{background:var(--sidebar-bg);border-right:1px solid var(--sidebar-bdr);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .brand{padding:22px 20px 18px;border-bottom:1px solid var(--sidebar-bdr)}
 [data-theme="p3"] .brand-eye{color:rgba(255,255,255,0.3)}
 [data-theme="p4"] .brand-eye{color:rgba(0,0,0,0.45)}
@@ -88,7 +67,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .brand-name{font-size:14px;font-weight:700;line-height:1.2}
 [data-theme="p3"] .brand-accent{color:#00bbfa}
 [data-theme="p4"] .brand-accent{color:#8A4800}
-
 .nav{padding:10px 0;flex:1}
 [data-theme="p3"] .nav-section{color:rgba(255,255,255,0.2)}
 [data-theme="p4"] .nav-section{color:rgba(0,0,0,0.35)}
@@ -106,11 +84,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 [data-theme="p4"] .nav-badge{background:rgba(0,0,0,0.1);color:rgba(0,0,0,0.5)}
 [data-theme="p3"] .nav-item.active .nav-badge{background:var(--accent);color:#001736}
 [data-theme="p4"] .nav-item.active .nav-badge{background:#8A4800;color:#fff}
-
 .theme-toggle{display:flex;align-items:center;gap:8px;margin:12px 16px;padding:8px 12px;border-radius:8px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;transition:all 0.13s;user-select:none}
 [data-theme="p3"] .theme-toggle{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1)}
 [data-theme="p4"] .theme-toggle{background:rgba(0,0,0,0.08);color:rgba(0,0,0,0.55);border:1px solid rgba(0,0,0,0.12)}
-
 .user-info{padding:12px 20px;border-top:1px solid var(--sidebar-bdr);margin-top:auto}
 [data-theme="p3"] .user-info{border-top-color:rgba(255,255,255,0.06)}
 .user-name{font-size:11px;font-weight:600;margin-bottom:2px}
@@ -120,48 +96,34 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 [data-theme="p3"] .user-email{color:rgba(255,255,255,0.3)}
 [data-theme="p4"] .user-email{color:rgba(0,0,0,0.35)}
 .signout-btn{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-soft);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
-.signout-btn:hover{color:var(--text)}
-
 .sidebar-foot{padding:10px 20px 14px;font-size:10.5px;font-family:'DM Mono',monospace}
 [data-theme="p3"] .sidebar-foot{color:rgba(255,255,255,0.2)}
 [data-theme="p4"] .sidebar-foot{color:rgba(0,0,0,0.35)}
-
-/* Page header */
 .ph{display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .ph-title{font-size:20px;font-weight:700;letter-spacing:-0.02em}
 .ph-title span{color:var(--accent)}
 .ph-sub{color:var(--text-soft);font-size:12.5px}
 .ph-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-
-/* Buttons */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:5px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;transition:all 0.13s;border:1px solid transparent;white-space:nowrap}
 .btn:disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
 .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-txt)}
-.btn-secondary{background:var(--surface2);border-color:var(--rule-mid);color:var(--text-mid)}
 .btn-ghost{background:transparent;border-color:var(--rule-mid);color:var(--text-soft)}
 .btn-ghost:hover{color:var(--text);border-color:var(--text-soft)}
 .btn-accent{background:var(--inprog-bg);border-color:var(--inprog-bdr);color:var(--inprog-txt)}
 .btn-green{background:var(--invoicing-bg);border-color:var(--invoicing-bdr);color:var(--invoicing-txt)}
 .btn-sm{padding:5px 10px;font-size:12px}
-
-/* View toggle */
 .view-toggle{display:flex;background:var(--surface2);border:1px solid var(--rule);border-radius:6px;padding:2px;gap:2px}
 .vt-btn{padding:5px 13px;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-soft);border:none;background:transparent;font-family:'Inter',sans-serif;transition:all 0.13s}
 [data-theme="p3"] .vt-btn.active{background:var(--rule-mid);color:var(--text)}
 [data-theme="p4"] .vt-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-
-/* Toolbar */
 .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
 .search-wrap{position:relative;flex:1;min-width:200px;max-width:280px}
 .search-wrap input{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--rule);border-radius:5px;background:var(--surface);font-family:'Inter',sans-serif;font-size:13px;color:var(--text);outline:none}
-.search-wrap input:focus{border-color:var(--rule-mid)}
 .search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-soft);font-size:13px;pointer-events:none}
 .filter-chip{padding:5px 12px;border:1px solid var(--rule);border-radius:20px;background:var(--surface);font-size:12px;font-weight:500;color:var(--text-soft);cursor:pointer;transition:all 0.13s;white-space:nowrap}
 .filter-chip:hover{border-color:var(--rule-mid);color:var(--text)}
 .filter-chip.active{background:var(--btn-primary-bg);color:var(--btn-primary-txt);border-color:var(--btn-primary-bg)}
 .ml-auto{margin-left:auto}
-
-/* Stats */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
 .stat-card{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;border-left:3px solid var(--rule-mid)}
 .stat-card:nth-child(2){border-left-color:var(--inprog-txt)}
@@ -172,8 +134,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stat-val.blue{color:var(--inprog-txt)}
 .stat-val.red{color:var(--overdue-txt)}
 .stat-val.green{color:var(--invoicing-txt)}
-
-/* Kanban */
 .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start}
 .kanban-col{background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
 .kanban-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--rule);background:var(--surface2)}
@@ -185,8 +145,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stage-bar.complete{background:var(--complete-txt)}
 .kanban-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);background:var(--bg-mid);padding:1px 6px;border-radius:10px;border:1px solid var(--rule)}
 .kanban-body{padding:10px;display:flex;flex-direction:column;gap:7px;min-height:80px}
-
-/* Job card */
 .jcard{background:var(--bg-mid);border:1px solid var(--rule);border-radius:7px;padding:11px 12px;cursor:pointer;transition:border-color 0.13s,transform 0.13s}
 .jcard:hover{border-color:var(--accent);transform:translateY(-1px)}
 .jcard-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px}
@@ -199,8 +157,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .role-tag{font-weight:600;color:var(--role-tag)}
 .jcard-due{font-size:10px;color:var(--text-soft);margin-left:auto;font-family:'DM Mono',monospace}
 .jcard-due.overdue{color:var(--overdue-txt);font-weight:600}
-
-/* Stage pills */
 .stage-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;font-family:'DM Mono',monospace}
 .pill-booked{background:var(--booked-bg);color:var(--booked-txt);border:1px solid var(--booked-bdr)}
 .pill-inprog{background:var(--inprog-bg);color:var(--inprog-txt);border:1px solid var(--inprog-bdr)}
@@ -209,8 +165,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .pill-unpaid{background:var(--booked-bg);color:var(--booked-txt);border:1px solid var(--booked-bdr)}
 .pill-invoiced{background:var(--inprog-bg);color:var(--inprog-txt);border:1px solid var(--inprog-bdr)}
 .pill-paid{background:var(--invoicing-bg);color:var(--invoicing-txt);border:1px solid var(--invoicing-bdr)}
-
-/* Table */
 .table-wrap{background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:10px 14px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-soft);border-bottom:1px solid var(--rule);background:var(--surface2);white-space:nowrap;font-family:'DM Mono',monospace}
@@ -219,59 +173,40 @@ tbody tr:last-child td{border-bottom:none}
 tbody tr.job-row{cursor:pointer}
 tbody tr.job-row:hover td{background:var(--surface2)}
 .td-mono{font-family:'DM Mono',monospace;font-size:12px}
-
-/* Modal */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
 .modal-bg.open{display:flex}
 .modal{background:var(--surface);border-radius:12px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto;border:1px solid var(--rule-mid);box-shadow:0 24px 80px rgba(0,0,0,0.4)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--surface);z-index:1}
-.modal-title{font-size:15px;font-weight:700;letter-spacing:-0.01em}
-.modal-close{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text-soft);display:flex;align-items:center;justify-content:center;transition:all 0.13s}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text-soft);display:flex;align-items:center;justify-content:center}
 .modal-close:hover{background:var(--rule-mid);color:var(--text)}
 .modal-body{padding:20px 24px}
 .modal-foot{padding:14px 24px;border-top:1px solid var(--rule);display:flex;align-items:center;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
-
-/* Form */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field.span2{grid-column:span 2}
 .field label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-soft);font-family:'DM Mono',monospace}
-.field input,.field select,.field textarea{padding:8px 11px;border:1px solid var(--rule);border-radius:5px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--surface2);outline:none;transition:border-color 0.13s}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--rule-mid);background:var(--surface)}
-.field textarea{resize:vertical;min-height:60px}
+.field input,.field select,.field textarea{padding:8px 11px;border:1px solid var(--rule);border-radius:5px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--surface2);outline:none}
+.field input:focus,.field select:focus{border-color:var(--rule-mid);background:var(--surface)}
 .form-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-soft);padding:14px 0 8px;border-top:1px solid var(--rule);grid-column:span 2;font-family:'DM Mono',monospace}
 .form-section:first-child{border-top:none;padding-top:0}
-
-/* Detail */
 .detail-section{margin-bottom:18px}
 .detail-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-soft);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--rule);font-family:'DM Mono',monospace}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .detail-item label{display:block;font-size:10px;color:var(--text-soft);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;font-family:'DM Mono',monospace}
-.detail-item span{font-size:13px}
 .mono{font-family:'DM Mono',monospace;font-size:12px}
-
-/* Invoice strip */
 .inv-strip{border:1px solid var(--invoicing-bdr);border-radius:8px;padding:14px 16px;margin-top:16px;background:var(--invoicing-bg)}
 .inv-strip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--invoicing-txt);margin-bottom:12px;font-family:'DM Mono',monospace}
 .inv-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-
-/* Clients */
 .clients-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .client-card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;cursor:pointer;transition:all 0.13s}
 .client-card:hover{border-color:var(--accent)}
 .client-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em}
 .client-name{font-size:14px;font-weight:700;margin-bottom:8px}
 .client-email{font-size:11.5px;color:var(--text-soft);margin-bottom:2px}
-
-/* Payout */
-.payout-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-
-/* Empty */
 .empty{padding:56px 20px;text-align:center;color:var(--text-soft)}
 .empty-ico{font-size:28px;display:block;margin-bottom:10px}
 .empty-title{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px}
-
-/* Toast */
 #toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999}
 .toast{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:toastIn 0.18s ease;max-width:320px;font-family:'DM Mono',monospace;background:var(--surface2);color:var(--text);border:1px solid var(--rule-mid)}
 .toast.ok{border-color:var(--invoicing-bdr);color:var(--invoicing-txt)}
@@ -280,8 +215,6 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 .spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:rot 0.5s linear infinite;vertical-align:middle}
 @keyframes rot{to{transform:rotate(360deg)}}
 hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
-
-/* Loading overlay */
 #loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200;flex-direction:column;gap:16px}
 .loading-spin{width:32px;height:32px;border:3px solid var(--rule-mid);border-top-color:var(--accent);border-radius:50%;animation:rot 0.6s linear infinite}
 .loading-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-soft);letter-spacing:0.1em;text-transform:uppercase}
@@ -289,33 +222,26 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
 </head>
 <body>
 
-<!-- Loading overlay -->
 <div id="loading-overlay">
   <div class="loading-spin"></div>
   <div class="loading-text">Initialising…</div>
 </div>
 
-<!-- Login screen -->
-<div id="login-screen" style="display:none">
+<div id="login-screen">
   <div class="login-card">
     <div class="login-logo">Lionghardy DesignWorks</div>
     <div class="login-sub">LDW Engineering</div>
     <h1 class="login-title">ERP Console</h1>
-    <p class="login-desc">Sign in with your Microsoft account to access the job management system.</p>
-    <button class="login-btn" id="login-btn">
-      <svg viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-      </svg>
-      Sign in with Microsoft
-    </button>
+    <p class="login-desc">Sign in to access the job management system.</p>
+    <div class="login-form">
+      <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+      <button class="login-btn" id="login-btn">Sign In</button>
+    </div>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- App shell -->
 <div id="app-shell">
 <div class="shell">
   <nav class="sidebar">
@@ -405,8 +331,8 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
           <div class="form-section">Assignments</div>
           <div class="field"><label>Engineer (E)</label><select id="nj-eng"><option value="">— None —</option><option>CN</option><option>SL</option></select></div>
           <div class="field"><label>Drafter (D)</label><select id="nj-drafter"><option value="">— None —</option><option>CN</option><option>SL</option></select></div>
-          <div class="field"><label>SV Drafting (SVD)</label><select id="nj-sv"><option value="">— None —</option><option>LM</option></select></div>
-          <div class="field"><label>Checker (C)</label><select id="nj-checker"><option value="">— None —</option><option>CN</option><option>SL</option><option>LM</option></select></div>
+          <div class="field"><label>SV Drafting</label><select id="nj-sv"><option value="">— None —</option><option>LM</option></select></div>
+          <div class="field"><label>Checker</label><select id="nj-checker"><option value="">— None —</option><option>CN</option><option>SL</option><option>LM</option></select></div>
         </div>
         <hr class="div">
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -420,8 +346,8 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
     <div class="page" id="page-invoicing">
       <div class="ph"><h1 class="ph-title"><span>Invoicing</span></h1><span class="ph-sub">Jobs at invoicing stage</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-inv">&#x21BA; Refresh</button></div></div>
       <div class="stats-row">
-        <div class="stat-card"><div class="stat-lbl">Pending Details</div><div class="stat-val" id="si-pending">—</div></div>
-        <div class="stat-card"><div class="stat-lbl">Ready to Send</div><div class="stat-val blue" id="si-ready">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Pending</div><div class="stat-val" id="si-pending">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Ready</div><div class="stat-val blue" id="si-ready">—</div></div>
         <div class="stat-card"><div class="stat-lbl">Sent</div><div class="stat-val" id="si-sent">—</div></div>
         <div class="stat-card"><div class="stat-lbl">Outstanding</div><div class="stat-val green" id="si-outstanding">—</div></div>
       </div>
@@ -436,7 +362,7 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
 
     <!-- PAYOUT -->
     <div class="page" id="page-payout">
-      <div class="ph"><h1 class="ph-title">Engineer <span>Payout</span></h1><span class="ph-sub">CN &amp; LM earnings tracker</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-payout">&#x21BA; Refresh</button></div></div>
+      <div class="ph"><h1 class="ph-title">Engineer <span>Payout</span></h1><span class="ph-sub">CN &amp; LM earnings</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-payout">&#x21BA; Refresh</button></div></div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-lbl">CN Unpaid (A$)</div><div class="stat-val blue" id="cn-unpaid-aud">—</div></div>
         <div class="stat-card"><div class="stat-lbl">CN Unpaid (Rp)</div><div class="stat-val" id="cn-unpaid-rp">—</div></div>
@@ -449,26 +375,31 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
             <div style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.1em">CN</div>
             <div style="display:flex;gap:6px;align-items:center">
               <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rate:</span>
-              <input type="number" id="cn-rate" placeholder="e.g. 16200" step="1" style="width:100px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:12px;outline:none">
+              <input type="number" id="cn-rate" placeholder="e.g. 16200" style="width:100px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:12px;outline:none">
               <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
             </div>
           </div>
           <div class="table-wrap" style="overflow-x:auto">
-            <table style="min-width:560px"><thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>SV</th><th>Note</th><th style="text-align:right">Fee (A$)</th><th style="text-align:right">Conv (Rp)</th><th>Paid</th></tr></thead>
+            <table style="min-width:520px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>SV</th><th>Note</th><th style="text-align:right">A$</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
             <tbody id="cn-tbody"></tbody>
-            <tfoot><tr style="background:var(--surface2)"><td colspan="5" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td><td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">A$ 0.00</td><td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">Rp 0</td><td></td></tr></tfoot>
-            </table>
+            <tfoot><tr style="background:var(--surface2)">
+              <td colspan="5" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">0.00</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">0</td>
+              <td></td>
+            </tr></tfoot></table>
           </div>
         </div>
         <div>
-          <div style="display:flex;align-items:center;margin-bottom:10px">
-            <div style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent-txt);letter-spacing:0.1em">LM</div>
-          </div>
+          <div style="margin-bottom:10px;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent-txt);letter-spacing:0.1em">LM</div>
           <div class="table-wrap" style="overflow-x:auto">
-            <table style="min-width:380px"><thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>Note</th><th style="text-align:right">Fee (Rp)</th><th>Paid</th></tr></thead>
+            <table style="min-width:360px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>Note</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
             <tbody id="lm-tbody"></tbody>
-            <tfoot><tr style="background:var(--surface2)"><td colspan="4" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td><td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">Rp 0</td><td></td></tr></tfoot>
-            </table>
+            <tfoot><tr style="background:var(--surface2)">
+              <td colspan="4" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">0</td>
+              <td></td>
+            </tr></tfoot></table>
           </div>
         </div>
       </div>
@@ -498,8 +429,8 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
     <div class="modal-head"><span class="modal-title" id="cm-title">Add Client</span><button class="modal-close" id="cm-close">&#x2715;</button></div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="field"><label>Client ID *</label><input type="text" id="cm-id" placeholder="e.g. 04"></div>
-        <div class="field"><label>Code</label><input type="text" id="cm-code" placeholder="e.g. 04"></div>
+        <div class="field"><label>Client ID *</label><input type="text" id="cm-id"></div>
+        <div class="field"><label>Code</label><input type="text" id="cm-code"></div>
         <div class="field span2"><label>Full Name *</label><input type="text" id="cm-name"></div>
         <div class="field span2"><label>Address</label><input type="text" id="cm-address"></div>
         <div class="field"><label>Email To *</label><input type="email" id="cm-emailto"></div>
@@ -514,170 +445,11 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}
 
 <script>
 // ════════════════════════════════════════════════
-//  MSAL CONFIG
+//  SUPABASE CONFIG
 // ════════════════════════════════════════════════
-var MSAL_CONFIG = {
-  auth: {
-    clientId:    "bd5baea5-3664-4073-a977-8443d1067a4e",
-    authority:   "https://login.microsoftonline.com/1f775747-bcd3-450a-ad8b-9aee8a428b5f",
-    redirectUri: "https://apairofscissors.github.io/ERP/"
-  },
-  cache: { cacheLocation: "sessionStorage" }
-};
-
-var SCOPES = ["Files.ReadWrite.All", "Sites.ReadWrite.All", "Mail.Send", "User.Read"];
-
-// Excel file IDs — set after first Graph call or hardcode after finding them
-// Format: /me/drive/root:/{path}
-var JOB_BK_PATH  = "/me/drive/root:/02. Engineering Documents/01. Performance Record/JobBookkeeping.xlsx";
-var BK_PATH      = "/me/drive/root:/03. Finance Documents/Bookkeeping.xlsx";
-
-var msalInstance = null;
-var accessToken  = null;
-
-// ════════════════════════════════════════════════
-//  AUTH
-// ════════════════════════════════════════════════
-function initMsal() {
-  msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  msalInstance.initialize().then(function() {
-    // Handle redirect response
-    msalInstance.handleRedirectPromise().then(function(response) {
-      if (response) {
-        accessToken = response.accessToken;
-        onSignedIn(response.account);
-      } else {
-        // Check if already signed in
-        var accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) {
-          getToken(accounts[0]).then(function(token) {
-            accessToken = token;
-            onSignedIn(accounts[0]);
-          }).catch(function() {
-            showLogin();
-          });
-        } else {
-          showLogin();
-        }
-      }
-    }).catch(function(err) {
-      showLogin();
-      console.error(err);
-    });
-  });
-}
-
-function getToken(account) {
-  return msalInstance.acquireTokenSilent({
-    scopes: SCOPES,
-    account: account
-  }).then(function(res) {
-    return res.accessToken;
-  }).catch(function() {
-    return msalInstance.acquireTokenPopup({ scopes: SCOPES }).then(function(res) {
-      return res.accessToken;
-    });
-  });
-}
-
-function signIn() {
-  msalInstance.loginRedirect({ scopes: SCOPES });
-}
-
-function signOut() {
-  msalInstance.logoutRedirect();
-}
-
-function showLogin() {
-  document.getElementById('loading-overlay').style.display = 'none';
-  document.getElementById('login-screen').style.display    = 'flex';
-  document.getElementById('app-shell').style.display       = 'none';
-}
-
-function onSignedIn(account) {
-  document.getElementById('loading-overlay').style.display = 'none';
-  document.getElementById('login-screen').style.display    = 'none';
-  document.getElementById('app-shell').style.display       = 'block';
-  document.getElementById('user-name').textContent  = account.name || account.username;
-  document.getElementById('user-email').textContent = account.username;
-  // Load initial data
-  clients = [];
-  loadClients().then(function() { loadBoard(); });
-}
-
-// ════════════════════════════════════════════════
-//  GRAPH API HELPERS
-// ════════════════════════════════════════════════
-function graphGet(url) {
-  return fetch("https://graph.microsoft.com/v1.0" + url, {
-    headers: { Authorization: "Bearer " + accessToken }
-  }).then(function(r) { return r.json(); });
-}
-
-function graphPost(url, body) {
-  return fetch("https://graph.microsoft.com/v1.0" + url, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  }).then(function(r) { return r.json(); });
-}
-
-// ── Run an Office Script ──────────────────────────────────────
-// filePath: e.g. "/me/drive/root:/path/to/file.xlsx"
-// scriptName: name of the script in the workbook
-// params: object of parameters
-function runScript(filePath, scriptName, params) {
-  params = params || {};
-  // Get file ID first, then run script
-  return graphGet(filePath + ":/workbook").then(function(wb) {
-    // Actually we use the run script endpoint
-    return fetch("https://graph.microsoft.com/v1.0" + filePath + ":/workbook/runScript", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify({ scriptId: scriptName, parameters: params })
-    }).then(function(r) { return r.json(); });
-  });
-}
-
-// ── Simpler: use the Excel Scripts API ───────────────────────
-// We need to get the workbook item ID first
-var WORKBOOK_IDS = {};
-
-function getWorkbookId(path) {
-  if (WORKBOOK_IDS[path]) return Promise.resolve(WORKBOOK_IDS[path]);
-  return graphGet(path).then(function(item) {
-    WORKBOOK_IDS[path] = item.id;
-    return item.id;
-  });
-}
-
-// Run Office Script via Graph API
-// The endpoint is: POST /me/drive/items/{itemId}/workbook/microsoft.graph.runScript
-function runOfficeScript(filePath, scriptName, params) {
-  return getWorkbookId(filePath).then(function(itemId) {
-    return fetch("https://graph.microsoft.com/v1.0/me/drive/items/" + itemId + "/workbook/microsoft.graph.runScript", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + accessToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        scriptId: scriptName,
-        parameters: params || {}
-      })
-    }).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-      return r.json();
-    }).then(function(res) {
-      // Result is in res.value (the JSON string returned by the script)
-      if (res.value) {
-        try { return JSON.parse(res.value); }
-        catch(e) { return res.value; }
-      }
-      return res;
-    });
-  });
-}
+var SUPABASE_URL = 'https://idakaomdpvvrsundufbp.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkYWthb21kcHZ2cnN1bmR1ZmJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDk1OTgsImV4cCI6MjEwMzY4NTU5OH0.Wvi3tHl5u7MiSx0LUsPA-s35czYVsQGlpu0vsZhZjX8';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ════════════════════════════════════════════════
 //  STATE
@@ -686,225 +458,273 @@ var jobs=[], invJobs=[], clients=[], cnRows=[], lmRows=[];
 var curView='kanban', stageFilter='all', invFilter='all', editingJob=null;
 
 // ════════════════════════════════════════════════
-//  DATA LOADING — calls Office Scripts via Graph
+//  AUTH
 // ════════════════════════════════════════════════
-function loadJobs() {
-  return runOfficeScript(JOB_BK_PATH, "getJobs", {}).then(function(res) {
-    if (!res || !res.ok) throw new Error(res ? res.error : "Failed to load jobs");
-    jobs = res.jobs || [];
-    return jobs;
+async function initAuth() {
+  var { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    onSignedIn(session.user);
+  } else {
+    showLogin();
+  }
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (event === 'SIGNED_IN' && session) onSignedIn(session.user);
+    if (event === 'SIGNED_OUT') showLogin();
   });
 }
 
-function loadClients() {
-  return runOfficeScript(BK_PATH, "getClients", {}).then(function(res) {
-    if (!res || !res.ok) throw new Error(res ? res.error : "Failed to load clients");
-    clients = res.clients || [];
-    return clients;
+async function signIn() {
+  var email    = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  var errEl    = document.getElementById('login-error');
+  var btn      = document.getElementById('login-btn');
+  if (!email || !password) { errEl.textContent = 'Enter email and password'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  var { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) { errEl.textContent = error.message; return; }
+  errEl.textContent = '';
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+}
+
+function showLogin() {
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('login-screen').style.display    = 'flex';
+  document.getElementById('app-shell').style.display       = 'none';
+}
+
+function onSignedIn(user) {
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('login-screen').style.display    = 'none';
+  document.getElementById('app-shell').style.display       = 'block';
+  document.getElementById('user-name').textContent  = user.user_metadata?.full_name || user.email;
+  document.getElementById('user-email').textContent = user.email;
+  loadClients().then(function() { loadBoard(); });
+}
+
+// ════════════════════════════════════════════════
+//  SUPABASE DATA CALLS
+// ════════════════════════════════════════════════
+async function loadJobs() {
+  var { data, error } = await sb.from('jobs').select('*').order('booking_date', { ascending: false });
+  if (error) throw error;
+  jobs = data || [];
+  return jobs;
+}
+
+async function loadClients() {
+  var { data, error } = await sb.from('clients').select('*').order('client_id');
+  if (error) throw error;
+  clients = data || [];
+  return clients;
+}
+
+async function loadInvoiceJobs() {
+  var { data, error } = await sb.from('invoice_data').select('*').order('job_no');
+  if (error) throw error;
+  // Group by job_no + revision
+  var jobMap = {};
+  (data || []).forEach(function(row) {
+    var key = row.job_no + '||' + (row.revision || '');
+    if (!jobMap[key]) {
+      jobMap[key] = {
+        id: row.id, job_no: row.job_no, revision: row.revision,
+        client_id: row.client_id, job_type: row.job_type,
+        payment_status: row.payment_status || 'Unpaid',
+        lineItems: []
+      };
+    }
+    if (row.payment_status) jobMap[key].payment_status = row.payment_status;
+    jobMap[key].lineItems.push({ line_no: row.line_no, desc: row.description, amt: row.amount, id: row.id });
   });
-}
-
-function loadInvoiceJobs() {
-  return runOfficeScript(BK_PATH, "getInvoiceJobs", {}).then(function(res) {
-    if (!res || !res.ok) throw new Error(res ? res.error : "Failed to load invoice jobs");
-    invJobs = res.jobs || [];
-    return invJobs;
+  invJobs = Object.values(jobMap).map(function(j) {
+    j.lineItems.sort(function(a,b){ return a.line_no - b.line_no; });
+    return j;
   });
+  return invJobs;
 }
 
-function loadPayoutRows() {
-  return runOfficeScript(BK_PATH, "getPayoutRows", {}).then(function(res) {
-    if (!res || !res.ok) throw new Error(res ? res.error : "Failed to load payout");
-    cnRows = res.cnRows || [];
-    lmRows = res.lmRows || [];
+async function loadPayoutData() {
+  var { data, error } = await sb.from('engineer_payout').select('*').order('id');
+  if (error) throw error;
+  cnRows = (data || []).filter(function(r){ return r.person === 'CN'; });
+  lmRows = (data || []).filter(function(r){ return r.person === 'LM'; });
+}
+
+async function saveJobUpdate(id, updates) {
+  var { error } = await sb.from('jobs').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+async function insertJob(data) {
+  var { error } = await sb.from('jobs').insert(data);
+  if (error) throw error;
+}
+
+async function updatePayoutPaid(id, paid) {
+  var { error } = await sb.from('engineer_payout').update({ paid }).eq('id', id);
+  if (error) throw error;
+}
+
+async function saveInvoiceLines(jobNo, revision, lineItems, paymentStatus) {
+  // Update existing line items
+  for (var i = 0; i < lineItems.length; i++) {
+    var item = lineItems[i];
+    if (item.id) {
+      var update = { description: item.desc, amount: item.amt };
+      if (i === 0) update.payment_status = paymentStatus;
+      var { error } = await sb.from('invoice_data').update(update).eq('id', item.id);
+      if (error) throw error;
+    } else {
+      // New line item
+      var { error } = await sb.from('invoice_data').insert({
+        job_no: jobNo, revision, line_no: i + 1,
+        description: item.desc, amount: item.amt,
+        payment_status: i === 0 ? paymentStatus : null
+      });
+      if (error) throw error;
+    }
+  }
+}
+
+async function getNextInvoiceNo(clientCode) {
+  var yy = String(new Date().getFullYear()).slice(-2);
+  var prefix = 'INV ' + yy + '-' + clientCode + '-';
+  var { data } = await sb.from('invoice_log').select('invoice_no').ilike('invoice_no', prefix + '%');
+  var last = 0;
+  (data || []).forEach(function(r) {
+    var seq = parseInt(r.invoice_no.slice(prefix.length), 10);
+    if (!isNaN(seq) && seq > last) last = seq;
   });
-}
-
-function saveJob(rowIndex, progress, status, eng, drafter, sv, checker, intDate, actDate, dueDate, issuedDate) {
-  return runOfficeScript(JOB_BK_PATH, "updateJob", {
-    rowIndex, jobProgress: progress, jobStatus: status,
-    eng, drafter, svDrafting: sv, checker,
-    internalDate: intDate, actualDate: actDate, dueDate, issuedDate
-  });
-}
-
-function bookNewJob(data) {
-  return runOfficeScript(JOB_BK_PATH, "writeJob", data);
-}
-
-function saveInvoiceLines(jobNo, rev, lineItems, paymentStatus) {
-  return runOfficeScript(BK_PATH, "saveInvoiceLineItems", {
-    jobNo, rev,
-    lineItems: JSON.stringify(lineItems),
-    paymentStatus
-  });
-}
-
-function getNextInvNo(clientCode) {
-  return runOfficeScript(BK_PATH, "getNextInvoiceNumber", { clientCode });
+  return prefix + String(last + 1).padStart(4, '0');
 }
 
 // ════════════════════════════════════════════════
 //  THEME
 // ════════════════════════════════════════════════
 function toggleTheme() {
-  var isP3 = document.documentElement.getAttribute('data-theme')==='p3';
-  document.documentElement.setAttribute('data-theme', isP3?'p4':'p3');
-  document.getElementById('theme-label').textContent = isP3?'P4 / Light':'P3 / Dark';
-  document.getElementById('theme-emoji').textContent = isP3?'📺':'🌙';
+  var isP3 = document.documentElement.getAttribute('data-theme') === 'p3';
+  document.documentElement.setAttribute('data-theme', isP3 ? 'p4' : 'p3');
+  document.getElementById('theme-label').textContent = isP3 ? 'P4 / Light' : 'P3 / Dark';
+  document.getElementById('theme-emoji').textContent = isP3 ? '📺' : '🌙';
 }
 
 // ════════════════════════════════════════════════
 //  NAVIGATION
 // ════════════════════════════════════════════════
 function nav(pageId, el) {
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
-  document.getElementById('page-'+pageId).classList.add('active');
-  if(el) el.classList.add('active');
-  if(pageId==='board')     loadBoard();
-  if(pageId==='invoicing') loadInvoicingPage();
-  if(pageId==='clients')   renderClients();
-  if(pageId==='newjob')    initNewJob();
-  if(pageId==='payout')    loadPayoutPage();
-}
-
-// ════════════════════════════════════════════════
-//  VIEW TOGGLE
-// ════════════════════════════════════════════════
-function setView(v) {
-  curView=v;
-  document.getElementById('vt-kanban').classList.toggle('active',v==='kanban');
-  document.getElementById('vt-table').classList.toggle('active',v==='table');
-  document.getElementById('view-kanban').style.display=v==='kanban'?'':'none';
-  document.getElementById('view-table').style.display=v==='table'?'':'none';
-  renderBoard();
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('page-' + pageId).classList.add('active');
+  if (el) el.classList.add('active');
+  if (pageId === 'board')     loadBoard();
+  if (pageId === 'invoicing') loadInvoicingPage();
+  if (pageId === 'clients')   renderClients();
+  if (pageId === 'newjob')    initNewJob();
+  if (pageId === 'payout')    loadPayoutPage();
 }
 
 // ════════════════════════════════════════════════
 //  BOARD
 // ════════════════════════════════════════════════
 function loadBoard() {
-  document.getElementById('board-sub').textContent='Loading…';
-  document.getElementById('foot-status').textContent='Loading…';
+  document.getElementById('board-sub').textContent = 'Loading…';
   loadJobs().then(function() {
     renderBoard(); updateBoardStats();
-    document.getElementById('board-sub').textContent=jobs.length+' jobs total';
-    document.getElementById('nb-board').textContent=jobs.filter(function(j){return j.progress!=='Completed'&&j.JobProgress!=='Completed';}).length;
-    document.getElementById('foot-status').textContent='Updated '+new Date().toLocaleTimeString();
-  }).catch(function(err) {
-    toast('Failed to load jobs: '+err.message,'err');
-    document.getElementById('board-sub').textContent='Error';
-  });
+    var active = jobs.filter(function(j){ return j.job_progress !== 'Completed'; });
+    document.getElementById('board-sub').textContent = jobs.length + ' jobs total';
+    document.getElementById('nb-board').textContent  = active.length;
+    document.getElementById('foot-status').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  }).catch(function(err){ toast('Failed to load: ' + err.message, 'err'); });
 }
 
 function updateBoardStats() {
-  var prog = function(j){ return j.JobProgress||j.progress||''; };
-  var active   = jobs.filter(function(j){ return prog(j)!=='Completed'; });
-  var today    = new Date(); today.setHours(0,0,0,0);
-  var overdue  = active.filter(function(j){
-    var d = j.DueDate||j.dueDate;
-    return d && new Date(d.split('/').reverse().join('-')) < today;
-  });
-  document.getElementById('st-total').textContent    = active.length;
-  document.getElementById('st-inprog').textContent   = jobs.filter(function(j){ return prog(j)==='In Progress'; }).length;
-  document.getElementById('st-overdue').textContent  = overdue.length;
-  document.getElementById('st-invoicing').textContent= jobs.filter(function(j){ return prog(j)==='Invoicing'; }).length;
-  document.getElementById('nb-inv').textContent      = jobs.filter(function(j){ return prog(j)==='Invoicing'; }).length;
+  var today  = new Date(); today.setHours(0,0,0,0);
+  var active = jobs.filter(function(j){ return j.job_progress !== 'Completed'; });
+  var overdue= active.filter(function(j){ return j.due_date && new Date(j.due_date) < today; });
+  document.getElementById('st-total').textContent     = active.length;
+  document.getElementById('st-inprog').textContent    = jobs.filter(function(j){ return j.job_progress === 'In Progress'; }).length;
+  document.getElementById('st-overdue').textContent   = overdue.length;
+  document.getElementById('st-invoicing').textContent = jobs.filter(function(j){ return j.job_progress === 'Invoicing'; }).length;
+  document.getElementById('nb-inv').textContent       = jobs.filter(function(j){ return j.job_progress === 'Invoicing'; }).length;
 }
 
-function setStageFilter(f,el) {
-  stageFilter=f;
-  document.querySelectorAll('#page-board .filter-chip').forEach(function(b){b.classList.remove('active');});
+function setView(v) {
+  curView = v;
+  document.getElementById('vt-kanban').classList.toggle('active', v === 'kanban');
+  document.getElementById('vt-table').classList.toggle('active',  v === 'table');
+  document.getElementById('view-kanban').style.display = v === 'kanban' ? '' : 'none';
+  document.getElementById('view-table').style.display  = v === 'table'  ? '' : 'none';
+  renderBoard();
+}
+
+function setStageFilter(f, el) {
+  stageFilter = f;
+  document.querySelectorAll('#page-board .filter-chip').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active'); renderBoard();
 }
 
 function renderBoard() {
-  var q=(document.getElementById('board-search').value||'').toLowerCase();
-  var prog=function(j){ return j.JobProgress||j.progress||''; };
-  var jno=function(j){ return j.JobNo||j.jobNo||''; };
-  var cli=function(j){ return j.ClientName||j.client||''; };
-  var addr=function(j){ return j.Address||j.address||''; };
-  var filtered=jobs.slice();
-  if(stageFilter!=='all') filtered=filtered.filter(function(j){ return prog(j)===stageFilter; });
-  if(q) filtered=filtered.filter(function(j){
-    return jno(j).toLowerCase().indexOf(q)>-1||cli(j).toLowerCase().indexOf(q)>-1||addr(j).toLowerCase().indexOf(q)>-1;
+  var q = (document.getElementById('board-search').value || '').toLowerCase();
+  var filtered = jobs.slice();
+  if (stageFilter !== 'all') filtered = filtered.filter(function(j){ return j.job_progress === stageFilter; });
+  if (q) filtered = filtered.filter(function(j){
+    return (j.job_no||'').toLowerCase().indexOf(q) > -1 ||
+           (j.client_name||'').toLowerCase().indexOf(q) > -1 ||
+           (j.address||'').toLowerCase().indexOf(q) > -1;
   });
-  if(curView==='kanban') renderKanban(filtered); else renderTable(filtered);
+  if (curView === 'kanban') renderKanban(filtered); else renderTable(filtered);
 }
 
 function renderKanban(filtered) {
-  var stages=['Booked','In Progress','Invoicing','Completed'];
-  var ids=['booked','inprog','invoicing','complete'];
-  var prog=function(j){ return j.JobProgress||j.progress||''; };
-  stages.forEach(function(stage,si) {
-    var col=filtered.filter(function(j){ return prog(j)===stage; });
-    document.getElementById('kc-'+ids[si]).textContent=col.length;
-    var body=document.getElementById('kb-'+ids[si]);
-    if(col.length===0){ body.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--text-soft);font-family:DM Mono,monospace">— empty —</div>'; return; }
-    body.innerHTML=col.map(jobCardHTML).join('');
+  var stages = ['Booked','In Progress','Invoicing','Completed'];
+  var ids    = ['booked','inprog','invoicing','complete'];
+  stages.forEach(function(stage, si) {
+    var col = filtered.filter(function(j){ return j.job_progress === stage; });
+    document.getElementById('kc-' + ids[si]).textContent = col.length;
+    var body = document.getElementById('kb-' + ids[si]);
+    if (!col.length) { body.innerHTML = '<div style="padding:20px;text-align:center;font-size:11px;color:var(--text-soft);font-family:DM Mono,monospace">— empty —</div>'; return; }
+    body.innerHTML = col.map(jobCardHTML).join('');
   });
 }
 
 function jobCardHTML(job) {
-  var jno=job.JobNo||job.jobNo||'';
-  var rev=job.Revision||job.revision||'';
-  var cli=job.ClientName||job.client||'';
-  var jtype=job.JobType||job.jobType||'';
-  var eng=job.Eng||job.eng||'';
-  var drafter=job.Drafter||job.drafter||'';
-  var sv=job.SVDrafting||job.sv||'';
-  var checker=job.Checker||job.checker||'';
-  var due=job.DueDate||job.dueDate||'';
-  var ri=job.rowIndex||0;
-
-  var today=new Date(); today.setHours(0,0,0,0);
-  var dueDate=due?new Date(due.split('/').reverse().join('-')):null;
-  var overdue=dueDate&&dueDate<today&&(job.JobProgress||job.progress)!=='Completed';
-  var dueStr=dueDate?dueDate.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'—';
-
-  var persons=[[eng,'E'],[drafter,'D'],[sv,'SVD'],[checker,'C']].filter(function(p){return p[0];});
-  var badges=persons.map(function(p){return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>';}).join('');
-
-  return '<div class="jcard" data-rowindex="'+ri+'">' +
-    '<div class="jcard-top"><span class="jcard-jobno">'+esc(jno)+'</span>'+(rev?'<span class="jcard-rev">'+esc(rev)+'</span>':'')+'</div>'+
-    '<div class="jcard-client">'+esc(shortClient(cli))+'</div>'+
-    '<div class="jcard-type">'+esc(jtype||'—')+'</div>'+
+  var today   = new Date(); today.setHours(0,0,0,0);
+  var due     = job.due_date ? new Date(job.due_date) : null;
+  var overdue = due && due < today && job.job_progress !== 'Completed';
+  var dueStr  = due ? due.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}) : '—';
+  var persons = [[job.eng,'E'],[job.drafter,'D'],[job.sv_drafting,'SVD'],[job.checker,'C']].filter(function(p){ return p[0]; });
+  var badges  = persons.map(function(p){ return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>'; }).join('');
+  return '<div class="jcard" data-id="'+job.id+'">' +
+    '<div class="jcard-top"><span class="jcard-jobno">'+esc(job.job_no)+'</span>'+(job.revision?'<span class="jcard-rev">'+esc(job.revision)+'</span>':'')+'</div>'+
+    '<div class="jcard-client">'+esc(shortClient(job.client_name||''))+'</div>'+
+    '<div class="jcard-type">'+esc(job.job_type||'—')+'</div>'+
     '<div class="jcard-footer">'+badges+'<span class="jcard-due'+(overdue?' overdue':'')+'">'+dueStr+'</span></div>'+
   '</div>';
 }
 
 function renderTable(filtered) {
-  var tbody=document.getElementById('table-body');
-  if(filtered.length===0){tbody.innerHTML='<tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-soft)">No jobs</td></tr>';return;}
-  var today=new Date(); today.setHours(0,0,0,0);
-  tbody.innerHTML=filtered.map(function(job){
-    var jno=job.JobNo||job.jobNo||'';
-    var rev=job.Revision||job.revision||'';
-    var cli=job.ClientName||job.client||'';
-    var addr=job.Address||job.address||'';
-    var jtype=job.JobType||job.jobType||'';
-    var eng=job.Eng||job.eng||'';
-    var drafter=job.Drafter||job.drafter||'';
-    var sv=job.SVDrafting||job.sv||'';
-    var checker=job.Checker||job.checker||'';
-    var prog=job.JobProgress||job.progress||'';
-    var jstatus=job.JobStatus||job.jobStatus||'';
-    var due=job.DueDate||job.dueDate||'';
-    var dueDate=due?new Date(due.split('/').reverse().join('-')):null;
-    var overdue=dueDate&&dueDate<today&&prog!=='Completed';
-    var dueStr=dueDate?dueDate.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}):'—';
-    var persons=[[eng,'E'],[drafter,'D'],[sv,'SVD'],[checker,'C']].filter(function(p){return p[0];});
-    var badges=persons.map(function(p){return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>';}).join('');
-    return '<tr class="job-row" data-rowindex="'+(job.rowIndex||0)+'">' +
-      '<td class="td-mono" style="font-weight:700">'+esc(jno)+'</td>' +
-      '<td class="td-mono">'+esc(rev||'—')+'</td>' +
-      '<td style="font-weight:500">'+esc(shortClient(cli))+'</td>' +
-      '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-mid)">'+esc(addr||'—')+'</td>' +
-      '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+esc(jtype||'—')+'</td>' +
+  var tbody = document.getElementById('table-body');
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-soft)">No jobs</td></tr>'; return; }
+  var today = new Date(); today.setHours(0,0,0,0);
+  tbody.innerHTML = filtered.map(function(job) {
+    var due     = job.due_date ? new Date(job.due_date) : null;
+    var overdue = due && due < today && job.job_progress !== 'Completed';
+    var dueStr  = due ? due.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
+    var persons = [[job.eng,'E'],[job.drafter,'D'],[job.sv_drafting,'SVD'],[job.checker,'C']].filter(function(p){ return p[0]; });
+    var badges  = persons.map(function(p){ return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>'; }).join('');
+    return '<tr class="job-row" data-id="'+job.id+'">' +
+      '<td class="td-mono" style="font-weight:700">'+esc(job.job_no)+'</td>' +
+      '<td class="td-mono">'+esc(job.revision||'—')+'</td>' +
+      '<td style="font-weight:500">'+esc(shortClient(job.client_name||''))+'</td>' +
+      '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-mid)">'+esc(job.address||'—')+'</td>' +
+      '<td style="font-size:12px">'+esc(job.job_type||'—')+'</td>' +
       '<td><div style="display:flex;gap:3px;flex-wrap:wrap">'+badges+'</div></td>' +
-      '<td>'+stagePill(prog)+'</td>' +
-      '<td style="font-size:11px;color:var(--text-soft);font-family:DM Mono,monospace">'+esc(jstatus||'—')+'</td>' +
+      '<td>'+stagePill(job.job_progress)+'</td>' +
+      '<td style="font-size:11px;color:var(--text-soft);font-family:DM Mono,monospace">'+esc(job.job_status||'—')+'</td>' +
       '<td class="td-mono" style="'+(overdue?'color:var(--overdue-txt);font-weight:600':'color:var(--text-soft)')+'">'+dueStr+'</td>' +
     '</tr>';
   }).join('');
@@ -913,544 +733,505 @@ function renderTable(filtered) {
 // ════════════════════════════════════════════════
 //  JOB DETAIL MODAL
 // ════════════════════════════════════════════════
-function openJobDetail(rowIndex) {
-  var job=jobs.find(function(j){return j.rowIndex===rowIndex;}); if(!job) return;
-  editingJob=job;
-
-  var jno=job.JobNo||job.jobNo||'';
-  var rev=job.Revision||job.revision||'';
-  var cli=job.ClientName||job.client||'';
-  var jtype=job.JobType||job.jobType||'';
-  var addr=job.Address||job.address||'';
-  var eng=job.Eng||job.eng||'';
-  var drafter=job.Drafter||job.drafter||'';
-  var sv=job.SVDrafting||job.sv||'';
-  var checker=job.Checker||job.checker||'';
-  var prog=job.JobProgress||job.progress||'';
-  var jstatus=job.JobStatus||job.jobStatus||'';
-  var intDate=job.InternalSubmissionDate||job.intDate||'';
-  var actDate=job.ActualInternalSubmissionDate||job.actDate||'';
-  var dueDate=job.DueDate||job.dueDate||'';
-  var issuedDate=job.IssuedDate||job.issuedDate||'';
-
-  document.getElementById('md-title').textContent=jno+(rev?' Rev '+rev:'')+' — '+shortClient(cli);
-
-  var html=
-    '<div class="detail-section"><div class="detail-section-title">Job Info</div><div class="detail-grid">'+
-    di('Job No','<span class="mono">'+esc(jno)+'</span>')+di('Revision','<span class="mono">'+esc(rev||'—')+'</span>')+
-    di('Client',esc(cli))+di('Job Type',esc(jtype||'—'))+di('Address',esc(addr||'—'),true)+
-    '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">Progress &amp; Status</div><div class="form-grid">'+
-    '<div class="field"><label>Job Progress</label><select id="ed-progress">'+
-      ['Booked','In Progress','Ext Checking','Invoicing','Completed'].map(function(s){return '<option'+(prog===s?' selected':'')+'>'+s+'</option>';}).join('')+
-    '</select></div>'+
-    '<div class="field"><label>Job Status</label><select id="ed-jobstatus"><option value="">— None —</option>'+
-      ['Preliminary Issue','For Construction','Issued For Report','Pre Engineering','ON HOLD'].map(function(s){return '<option'+(jstatus===s?' selected':'')+'>'+s+'</option>';}).join('')+
-    '</select></div>'+
-    '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">Assignments</div><div class="form-grid">'+
-    selF('ed-eng','Engineer (E)',['','CN','SL'],eng)+selF('ed-drafter','Drafter (D)',['','CN','SL'],drafter)+
-    selF('ed-sv','SV Drafting (SVD)',['','LM'],sv)+selF('ed-checker','Checker (C)',['','CN','SL','LM'],checker)+
-    '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">Dates</div><div class="form-grid">'+
-    dtF('ed-intdate','Internal Due Date',fmtDateInput(intDate))+
-    dtF('ed-actdate','Actual Submission Date',fmtDateInput(actDate))+
-    dtF('ed-duedate','Due Date',fmtDateInput(dueDate))+
-    dtF('ed-issueddate','Issued Date',fmtDateInput(issuedDate))+
+function openJobDetail(id) {
+  var job = jobs.find(function(j){ return j.id === id; }); if (!job) return;
+  editingJob = job;
+  document.getElementById('md-title').textContent = job.job_no + (job.revision ? ' Rev ' + job.revision : '') + ' — ' + shortClient(job.client_name || '');
+  var html =
+    '<div class="detail-section"><div class="detail-section-title">Job Info</div><div class="detail-grid">' +
+    di('Job No', '<span class="mono">'+esc(job.job_no)+'</span>') +
+    di('Revision', '<span class="mono">'+esc(job.revision||'—')+'</span>') +
+    di('Client', esc(job.client_name||'')) +
+    di('Job Type', esc(job.job_type||'—')) +
+    di('Address', esc(job.address||'—'), true) +
+    '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">Progress &amp; Status</div><div class="form-grid">' +
+    '<div class="field"><label>Job Progress</label><select id="ed-progress">' +
+      ['Booked','In Progress','Ext Checking','Invoicing','Completed'].map(function(s){ return '<option'+(job.job_progress===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="field"><label>Job Status</label><select id="ed-jobstatus"><option value="">— None —</option>' +
+      ['Preliminary Issue','For Construction','Issued For Report','Pre Engineering','ON HOLD'].map(function(s){ return '<option'+(job.job_status===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">Assignments</div><div class="form-grid">' +
+    selF('ed-eng','Engineer (E)',['','CN','SL'],job.eng||'') +
+    selF('ed-drafter','Drafter (D)',['','CN','SL'],job.drafter||'') +
+    selF('ed-sv','SV Drafting',['','LM'],job.sv_drafting||'') +
+    selF('ed-checker','Checker',['','CN','SL','LM','AR','AS','MV'],job.checker||'') +
+    '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">Dates</div><div class="form-grid">' +
+    dtF('ed-intdate','Internal Due Date', job.internal_submission_date||'') +
+    dtF('ed-actdate','Actual Submission', job.actual_internal_submission_date||'') +
+    dtF('ed-duedate','Due Date', job.due_date||'') +
+    dtF('ed-issueddate','Issued Date', job.issued_date||'') +
     '</div></div>';
-
-  document.getElementById('md-body').innerHTML=html;
+  document.getElementById('md-body').innerHTML = html;
   document.getElementById('modal-detail').classList.add('open');
 }
 
-function fmtDateInput(d) {
-  // Converts DD/MM/YYYY to YYYY-MM-DD for date input
-  if(!d||!d.includes('/')) return d||'';
-  var p=d.split('/');
-  if(p.length===3) return p[2]+'-'+p[1]+'-'+p[0];
-  return d;
-}
-
-function fmtDateScript(d) {
-  // Converts YYYY-MM-DD back to DD/MM/YYYY for script
-  if(!d||!d.includes('-')) return d||'';
-  var p=d.split('-');
-  if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0];
-  return d;
-}
-
 function saveJobDetail() {
-  if(!editingJob) return;
-  var btn=document.getElementById('md-save');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Saving…';
-
-  var progress   = document.getElementById('ed-progress').value;
-  var jobStatus  = document.getElementById('ed-jobstatus').value;
-  var eng        = document.getElementById('ed-eng').value;
-  var drafter    = document.getElementById('ed-drafter').value;
-  var sv         = document.getElementById('ed-sv').value;
-  var checker    = document.getElementById('ed-checker').value;
-  var intDate    = fmtDateScript(document.getElementById('ed-intdate').value);
-  var actDate    = fmtDateScript(document.getElementById('ed-actdate').value);
-  var dueDate    = fmtDateScript(document.getElementById('ed-duedate').value);
-  var issuedDate = fmtDateScript(document.getElementById('ed-issueddate').value);
-
-  saveJob(editingJob.rowIndex, progress, jobStatus, eng, drafter, sv, checker, intDate, actDate, dueDate, issuedDate)
-    .then(function(res) {
-      btn.disabled=false; btn.innerHTML='Save Changes';
-      if(!res||!res.ok){ toast('Save failed: '+(res?res.error:'unknown'),'err'); return; }
-      // Update local state
-      editingJob.JobProgress=progress; editingJob.progress=progress;
-      editingJob.JobStatus=jobStatus;  editingJob.jobStatus=jobStatus;
-      editingJob.Eng=eng;              editingJob.eng=eng;
-      editingJob.Drafter=drafter;      editingJob.drafter=drafter;
-      editingJob.SVDrafting=sv;        editingJob.sv=sv;
-      editingJob.Checker=checker;      editingJob.checker=checker;
-      toast('Job saved','ok');
-      closeModal('modal-detail');
-      renderBoard(); updateBoardStats();
-    })
-    .catch(function(err) {
-      btn.disabled=false; btn.innerHTML='Save Changes';
-      toast('Error: '+err.message,'err');
-    });
+  if (!editingJob) return;
+  var btn = document.getElementById('md-save');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Saving…';
+  var updates = {
+    job_progress:                    document.getElementById('ed-progress').value,
+    job_status:                      document.getElementById('ed-jobstatus').value,
+    eng:                             document.getElementById('ed-eng').value,
+    drafter:                         document.getElementById('ed-drafter').value,
+    sv_drafting:                     document.getElementById('ed-sv').value,
+    checker:                         document.getElementById('ed-checker').value,
+    internal_submission_date:        document.getElementById('ed-intdate').value || null,
+    actual_internal_submission_date: document.getElementById('ed-actdate').value || null,
+    due_date:                        document.getElementById('ed-duedate').value || null,
+    issued_date:                     document.getElementById('ed-issueddate').value || null,
+  };
+  saveJobUpdate(editingJob.id, updates).then(function() {
+    btn.disabled = false; btn.innerHTML = 'Save Changes';
+    Object.assign(editingJob, updates);
+    toast('Job saved', 'ok');
+    closeModal('modal-detail');
+    renderBoard(); updateBoardStats();
+  }).catch(function(err) {
+    btn.disabled = false; btn.innerHTML = 'Save Changes';
+    toast('Error: ' + err.message, 'err');
+  });
 }
 
 // ════════════════════════════════════════════════
 //  NEW JOB
 // ════════════════════════════════════════════════
 function initNewJob() {
-  document.getElementById('nj-bookdate').value=new Date().toISOString().slice(0,10);
-  var sel=document.getElementById('nj-client');
-  sel.innerHTML='<option value="">— Select client —</option>';
-  clients.forEach(function(c){
-    var o=document.createElement('option');
-    o.value=c.name||c.clientId; o.textContent=c.name;
+  document.getElementById('nj-bookdate').value = new Date().toISOString().slice(0,10);
+  var sel = document.getElementById('nj-client');
+  sel.innerHTML = '<option value="">— Select client —</option>';
+  clients.forEach(function(c) {
+    var o = document.createElement('option');
+    o.value = c.name; o.textContent = c.name;
     sel.appendChild(o);
   });
 }
 
 function submitNewJob() {
-  var jobno    = document.getElementById('nj-jobno').value.trim();
-  var rev      = document.getElementById('nj-rev').value.trim();
-  var clientVal= document.getElementById('nj-client').value;
-  var address  = document.getElementById('nj-address').value.trim();
-  var jobtype  = document.getElementById('nj-jobtype').value.trim();
-  if(!jobno)    {toast('Job No is required','err');return;}
-  if(!rev)      {toast('Revision is required','err');return;}
-  if(!clientVal){toast('Select a client','err');return;}
-  if(!address)  {toast('Address is required','err');return;}
-  if(!jobtype)  {toast('Job Type is required','err');return;}
+  var jobno   = document.getElementById('nj-jobno').value.trim();
+  var rev     = document.getElementById('nj-rev').value.trim();
+  var client  = document.getElementById('nj-client').value;
+  var address = document.getElementById('nj-address').value.trim();
+  var jobtype = document.getElementById('nj-jobtype').value.trim();
+  if (!jobno)   { toast('Job No required','err'); return; }
+  if (!rev)     { toast('Revision required','err'); return; }
+  if (!client)  { toast('Select a client','err'); return; }
+  if (!address) { toast('Address required','err'); return; }
+  if (!jobtype) { toast('Job Type required','err'); return; }
 
-  var btn=document.getElementById('nj-submit');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Booking…';
+  var btn = document.getElementById('nj-submit');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Booking…';
 
-  var data = {
-    bookingDate:  fmtDateScript(document.getElementById('nj-bookdate').value),
-    jobNo:        jobno,
-    revision:     rev,
-    clientName:   clientVal,
-    address:      address,
-    eng:          document.getElementById('nj-eng').value,
-    drafter:      document.getElementById('nj-drafter').value,
-    svDrafting:   document.getElementById('nj-sv').value,
-    checker:      document.getElementById('nj-checker').value,
-    dueDate:      fmtDateScript(document.getElementById('nj-duedate').value),
-    internalDate: fmtDateScript(document.getElementById('nj-intdate').value),
-    jobType:      jobtype,
-    jobStatus:    document.getElementById('nj-jobstatus').value
-  };
-
-  bookNewJob(data).then(function(res) {
-    btn.disabled=false; btn.innerHTML='Book Job';
-    if(!res||!res.ok){toast('Booking failed: '+(res?res.error:'unknown'),'err');return;}
-    toast('Job '+jobno+' booked! Folders are being created…','ok');
-    ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){document.getElementById(id).value='';});
-    document.getElementById('nj-client').value='';
-    document.getElementById('nj-bookdate').value=new Date().toISOString().slice(0,10);
+  insertJob({
+    booking_date:           document.getElementById('nj-bookdate').value || null,
+    job_no:                 jobno,
+    revision:               rev,
+    client_name:            client,
+    address:                address,
+    eng:                    document.getElementById('nj-eng').value,
+    drafter:                document.getElementById('nj-drafter').value,
+    sv_drafting:            document.getElementById('nj-sv').value,
+    checker:                document.getElementById('nj-checker').value,
+    due_date:               document.getElementById('nj-duedate').value || null,
+    internal_submission_date: document.getElementById('nj-intdate').value || null,
+    job_type:               jobtype,
+    job_status:             document.getElementById('nj-jobstatus').value,
+    job_progress:           'Booked'
+  }).then(function() {
+    btn.disabled = false; btn.innerHTML = 'Book Job';
+    toast('Job ' + jobno + ' booked!', 'ok');
+    ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('nj-client').value = '';
     loadBoard();
   }).catch(function(err) {
-    btn.disabled=false; btn.innerHTML='Book Job';
-    toast('Error: '+err.message,'err');
+    btn.disabled = false; btn.innerHTML = 'Book Job';
+    toast('Error: ' + err.message, 'err');
   });
 }
 
 // ════════════════════════════════════════════════
-//  INVOICING PAGE
+//  INVOICING
 // ════════════════════════════════════════════════
 function loadInvoicingPage() {
-  document.getElementById('inv-container').innerHTML='<div class="empty"><span class="empty-ico">&#8987;</span><p class="empty-title">Loading…</p></div>';
+  document.getElementById('inv-container').innerHTML = '<div class="empty"><span class="empty-ico">&#8987;</span><p class="empty-title">Loading…</p></div>';
   loadInvoiceJobs().then(function() {
     updateInvStats(); renderInvoicing();
-  }).catch(function(err) {
-    toast('Failed to load invoicing: '+err.message,'err');
-  });
+  }).catch(function(err){ toast('Failed to load invoicing: ' + err.message, 'err'); });
 }
 
 function updateInvStats() {
-  var pending  = invJobs.filter(function(j){return !j.lineItems||!j.lineItems.length||!j.lineItems[0].desc;}).length;
-  var ready    = invJobs.filter(function(j){return j.lineItems&&j.lineItems.length&&j.paymentStatus==='Unpaid';}).length;
-  var sent     = invJobs.filter(function(j){return j.paymentStatus==='Invoiced';}).length;
-  var total    = invJobs.reduce(function(s,j){return s+((j.lineItems||[]).reduce(function(a,i){return a+(parseFloat(i.amt)||0);},0));},0);
-  document.getElementById('si-pending').textContent   = pending;
-  document.getElementById('si-ready').textContent     = ready;
-  document.getElementById('si-sent').textContent      = sent;
-  document.getElementById('si-outstanding').textContent = 'A$ '+total.toFixed(2);
+  var pending  = invJobs.filter(function(j){ return !j.lineItems.length || !j.lineItems[0].desc; }).length;
+  var ready    = invJobs.filter(function(j){ return j.lineItems.length && j.payment_status === 'Unpaid'; }).length;
+  var sent     = invJobs.filter(function(j){ return j.payment_status === 'Invoiced'; }).length;
+  var total    = invJobs.reduce(function(s,j){ return s + j.lineItems.reduce(function(a,i){ return a + (parseFloat(i.amt)||0); }, 0); }, 0);
+  document.getElementById('si-pending').textContent    = pending;
+  document.getElementById('si-ready').textContent      = ready;
+  document.getElementById('si-sent').textContent       = sent;
+  document.getElementById('si-outstanding').textContent= 'A$ ' + total.toFixed(2);
 }
 
-function setInvFilter(f,el) {
-  invFilter=f;
-  document.querySelectorAll('#page-invoicing .filter-chip').forEach(function(b){b.classList.remove('active');});
+function setInvFilter(f, el) {
+  invFilter = f;
+  document.querySelectorAll('#page-invoicing .filter-chip').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active'); renderInvoicing();
 }
 
 function renderInvoicing() {
-  var q=(document.getElementById('inv-search').value||'').toLowerCase();
-  var filtered=invJobs.slice();
-  if(invFilter!=='all') filtered=filtered.filter(function(j){return j.paymentStatus===invFilter;});
-  if(q) filtered=filtered.filter(function(j){return (j.jobNo||'').toLowerCase().indexOf(q)>-1;});
-  var c=document.getElementById('inv-container');
-  if(filtered.length===0){c.innerHTML='<div class="empty"><span class="empty-ico">&#10003;</span><p class="empty-title">No invoicing jobs</p></div>';return;}
-  c.innerHTML='';
-  var wrap=document.createElement('div'); wrap.style.cssText='display:flex;flex-direction:column;gap:10px';
-  filtered.forEach(function(job){
-    var pc={'Unpaid':'pill-unpaid','Invoiced':'pill-invoiced','Paid':'pill-paid'}[job.paymentStatus]||'pill-unpaid';
-    var isPaid=job.paymentStatus==='Paid', isInv=job.paymentStatus==='Invoiced';
-    var items=job.lineItems||[];
-    var total=items.reduce(function(s,i){return s+(parseFloat(i.amt)||0);},0);
-    var card=document.createElement('div');
-    card.style.cssText='background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px';
-    var hdr=document.createElement('div'); hdr.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:14px';
-    hdr.innerHTML='<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.jobNo)+'</span>'+
-      (job.rev?'<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.rev)+'</span>':'')+
-      '<span style="font-weight:600">'+esc(job.jobType||'')+'</span>'+
-      '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.paymentStatus)+'</span></span>';
+  var q = (document.getElementById('inv-search').value || '').toLowerCase();
+  var filtered = invJobs.slice();
+  if (invFilter !== 'all') filtered = filtered.filter(function(j){ return j.payment_status === invFilter; });
+  if (q) filtered = filtered.filter(function(j){ return (j.job_no||'').toLowerCase().indexOf(q) > -1; });
+  var c = document.getElementById('inv-container');
+  if (!filtered.length) { c.innerHTML = '<div class="empty"><span class="empty-ico">&#10003;</span><p class="empty-title">No invoicing jobs</p></div>'; return; }
+  c.innerHTML = '';
+  var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px';
+  filtered.forEach(function(job) {
+    var pc    = {'Unpaid':'pill-unpaid','Invoiced':'pill-invoiced','Paid':'pill-paid'}[job.payment_status] || 'pill-unpaid';
+    var isPaid= job.payment_status === 'Paid', isInv = job.payment_status === 'Invoiced';
+    var total = job.lineItems.reduce(function(s,i){ return s + (parseFloat(i.amt)||0); }, 0);
+    var card  = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px';
+    var hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px';
+    hdr.innerHTML = '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
+      (job.revision ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.revision)+'</span>' : '') +
+      '<span style="font-size:11px;color:var(--text-soft)">'+esc(job.job_type||'')+'</span>' +
+      '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.payment_status)+'</span></span>';
     card.appendChild(hdr);
-    var tbl=document.createElement('table'); tbl.style.cssText='width:100%;border-collapse:collapse;margin-bottom:6px';
-    tbl.innerHTML='<thead><tr>'+
-      '<th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th>'+
-      '<th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th>'+
-      '<th style="width:30px"></th></tr></thead>';
-    var tbody=document.createElement('tbody'); tbody.id='ilines-'+job.rowIndex;
-    items.forEach(function(item){tbody.appendChild(makeInvPageRow(job.rowIndex,item.desc,item.amt,isPaid));});
+    var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
+    tbl.innerHTML = '<thead><tr><th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th><th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th><th style="width:30px"></th></tr></thead>';
+    var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.id;
+    job.lineItems.forEach(function(item){ tbody.appendChild(makeInvRow(job.id, item.desc, item.amt, item.id, isPaid)); });
     tbl.appendChild(tbody); card.appendChild(tbl);
-    var totRow=document.createElement('div'); totRow.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-top:6px;border-top:1px solid var(--rule)';
-    var addBtn=document.createElement('button'); addBtn.className='btn btn-ghost btn-sm'; addBtn.textContent='+ Add Item'; addBtn.disabled=isPaid;
-    addBtn.addEventListener('click',(function(ri){return function(){document.getElementById('ilines-'+ri).appendChild(makeInvPageRow(ri,'',0,false));updatePageTotal(ri);};})(job.rowIndex));
-    var totSpan=document.createElement('span'); totSpan.style.cssText='font-family:DM Mono,monospace;font-size:13px;font-weight:700';
-    totSpan.innerHTML='Total &nbsp;<span id="itotal-'+job.rowIndex+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
+    var totRow = document.createElement('div'); totRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-top:6px;border-top:1px solid var(--rule)';
+    var addBtn = document.createElement('button'); addBtn.className = 'btn btn-ghost btn-sm'; addBtn.textContent = '+ Add Item'; addBtn.disabled = isPaid;
+    addBtn.addEventListener('click', (function(jid){ return function(){ document.getElementById('ilines-'+jid).appendChild(makeInvRow(jid,'',0,null,false)); updateInvTotal(jid); }; })(job.id));
+    var totSpan = document.createElement('span'); totSpan.style.cssText = 'font-family:DM Mono,monospace;font-size:13px;font-weight:700';
+    totSpan.innerHTML = 'Total &nbsp;<span id="itotal-'+job.id+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
     totRow.appendChild(addBtn); totRow.appendChild(totSpan); card.appendChild(totRow);
-    var act=document.createElement('div'); act.style.cssText='display:flex;gap:7px;align-items:center';
-    var ri=job.rowIndex;
-    var saveBtn=document.createElement('button'); saveBtn.className='btn btn-ghost btn-sm'; saveBtn.innerHTML='&#128190; Save'; saveBtn.disabled=isPaid;
-    saveBtn.onclick=function(){doSaveInvRow(ri,job.jobNo,job.rev,isPaid);};
-    var genBtn=document.createElement('button');  genBtn.className='btn btn-primary btn-sm'; genBtn.innerHTML='&#128196; Generate'; genBtn.disabled=isInv||isPaid;
-    genBtn.onclick=function(){doGenerateInv(job);};
-    var sendBtn=document.createElement('button'); sendBtn.className='btn btn-accent btn-sm'; sendBtn.innerHTML='&#9993; Export &amp; Send'; sendBtn.disabled=isPaid;
-    sendBtn.onclick=function(){doSendInv(job);};
-    var spacer=document.createElement('div'); spacer.style.flex='1';
-    var paidBtn=document.createElement('button'); paidBtn.className='btn btn-green btn-sm'; paidBtn.innerHTML='&#10003; Mark Paid'; paidBtn.disabled=!isInv||isPaid;
-    paidBtn.onclick=function(){doMarkPaid(job);};
+    var act = document.createElement('div'); act.style.cssText = 'display:flex;gap:7px;align-items:center';
+    var saveBtn = document.createElement('button'); saveBtn.className = 'btn btn-ghost btn-sm'; saveBtn.innerHTML = '&#128190; Save'; saveBtn.disabled = isPaid;
+    saveBtn.onclick = (function(j){ return function(){ doSaveInv(j); }; })(job);
+    var genBtn = document.createElement('button'); genBtn.className = 'btn btn-primary btn-sm'; genBtn.innerHTML = '&#128196; Generate'; genBtn.disabled = isInv || isPaid;
+    genBtn.onclick = (function(j){ return function(){ doGenerateInv(j); }; })(job);
+    var sendBtn = document.createElement('button'); sendBtn.className = 'btn btn-accent btn-sm'; sendBtn.innerHTML = '&#9993; Send'; sendBtn.disabled = isPaid;
+    sendBtn.onclick = (function(j){ return function(){ doSendInv(j); }; })(job);
+    var spacer = document.createElement('div'); spacer.style.flex = '1';
+    var paidBtn = document.createElement('button'); paidBtn.className = 'btn btn-green btn-sm'; paidBtn.innerHTML = '&#10003; Mark Paid'; paidBtn.disabled = !isInv || isPaid;
+    paidBtn.onclick = (function(j){ return function(){ doMarkPaid(j); }; })(job);
     act.appendChild(saveBtn); act.appendChild(genBtn); act.appendChild(sendBtn); act.appendChild(spacer); act.appendChild(paidBtn);
     card.appendChild(act); wrap.appendChild(card);
   });
   c.appendChild(wrap);
 }
 
-function makeInvPageRow(rowIndex,desc,amt,disabled){
-  var tr=document.createElement('tr');
-  var di=document.createElement('input'); di.type='text'; di.value=desc||''; di.placeholder='Description…'; di.disabled=disabled;
-  di.style.cssText='width:100%;padding:5px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:Inter,sans-serif;font-size:13px';
-  var ai=document.createElement('input'); ai.type='number'; ai.value=amt||''; ai.step='0.01'; ai.placeholder='0.00'; ai.disabled=disabled;
-  ai.style.cssText='width:100%;padding:5px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px';
-  ai.addEventListener('input',function(){updatePageTotal(rowIndex);});
-  var rb=document.createElement('button'); rb.innerHTML='&#x2715;'; rb.disabled=disabled; rb.style.cssText='background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:14px;padding:4px';
-  rb.addEventListener('click',function(){tr.remove();updatePageTotal(rowIndex);});
-  var td1=document.createElement('td'); td1.style.padding='3px 0'; td1.appendChild(di);
-  var td2=document.createElement('td'); td2.style.cssText='padding:3px 0 3px 8px;width:120px'; td2.appendChild(ai);
-  var td3=document.createElement('td'); td3.style.cssText='width:30px;text-align:center'; td3.appendChild(rb);
+function makeInvRow(jobId, desc, amt, lineId, disabled) {
+  var tr = document.createElement('tr');
+  var di = document.createElement('input'); di.type = 'text'; di.value = desc || ''; di.placeholder = 'Description…'; di.disabled = disabled;
+  di.style.cssText = 'width:100%;padding:5px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:Inter,sans-serif;font-size:13px';
+  if (lineId) di.dataset.lineId = lineId;
+  var ai = document.createElement('input'); ai.type = 'number'; ai.value = amt || ''; ai.step = '0.01'; ai.placeholder = '0.00'; ai.disabled = disabled;
+  ai.style.cssText = 'width:100%;padding:5px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px';
+  ai.addEventListener('input', function(){ updateInvTotal(jobId); });
+  var rb = document.createElement('button'); rb.innerHTML = '&#x2715;'; rb.disabled = disabled; rb.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:14px;padding:4px';
+  rb.addEventListener('click', function(){ tr.remove(); updateInvTotal(jobId); });
+  var td1 = document.createElement('td'); td1.style.padding = '3px 0'; td1.appendChild(di);
+  var td2 = document.createElement('td'); td2.style.cssText = 'padding:3px 0 3px 8px;width:120px'; td2.appendChild(ai);
+  var td3 = document.createElement('td'); td3.style.cssText = 'width:30px;text-align:center'; td3.appendChild(rb);
   tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); return tr;
 }
 
-function updatePageTotal(rowIndex){
-  var tbody=document.getElementById('ilines-'+rowIndex); if(!tbody) return;
-  var total=0; tbody.querySelectorAll('input[type=number]').forEach(function(i){total+=parseFloat(i.value)||0;});
-  var el=document.getElementById('itotal-'+rowIndex); if(el) el.textContent='A$ '+total.toFixed(2);
+function updateInvTotal(jobId) {
+  var tbody = document.getElementById('ilines-' + jobId); if (!tbody) return;
+  var total = 0; tbody.querySelectorAll('input[type=number]').forEach(function(i){ total += parseFloat(i.value) || 0; });
+  var el = document.getElementById('itotal-' + jobId); if (el) el.textContent = 'A$ ' + total.toFixed(2);
 }
 
-function getInvLines(rowIndex){
-  var tbody=document.getElementById('ilines-'+rowIndex); if(!tbody) return [];
-  var rows=tbody.querySelectorAll('tr');
-  var items=[];
-  rows.forEach(function(tr){
-    var inputs=tr.querySelectorAll('input');
-    if(inputs.length>=2&&inputs[0].value.trim()){
-      items.push({desc:inputs[0].value.trim(), amt:parseFloat(inputs[1].value)||0});
+function getInvLines(jobId) {
+  var tbody = document.getElementById('ilines-' + jobId); if (!tbody) return [];
+  var items = [];
+  tbody.querySelectorAll('tr').forEach(function(tr) {
+    var inputs = tr.querySelectorAll('input');
+    if (inputs.length >= 2 && inputs[0].value.trim()) {
+      items.push({ desc: inputs[0].value.trim(), amt: parseFloat(inputs[1].value) || 0, id: inputs[0].dataset.lineId ? parseInt(inputs[0].dataset.lineId) : null });
     }
   });
   return items;
 }
 
-function doSaveInvRow(rowIndex, jobNo, rev, isPaid){
-  if(isPaid) return;
-  var items=getInvLines(rowIndex);
-  var btn=document.querySelector('#ilines-'+rowIndex)?.closest('div[style]')?.querySelector('.btn-ghost');
-  toast('Saving…','ok');
-  saveInvoiceLines(jobNo, rev, items, 'Unpaid').then(function(res){
-    if(!res||!res.ok){toast('Save failed','err');return;}
-    toast('Saved','ok');
-  }).catch(function(err){toast('Error: '+err.message,'err');});
+function doSaveInv(job) {
+  var items = getInvLines(job.id);
+  toast('Saving…', 'ok');
+  saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid').then(function() {
+    toast('Saved', 'ok');
+  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
-function doGenerateInv(job){
-  var items=getInvLines(job.rowIndex);
-  if(!items.length||!items[0].desc){toast('Add at least one line item','err');return;}
-  // Find client code
-  var client=clients.find(function(c){return c.name===job.clientId||c.clientId===job.clientId;});
-  var code=client?client.code:'00';
-  toast('Getting invoice number…','ok');
-  getNextInvNo(code).then(function(res){
-    if(!res||!res.ok){toast('Failed to get invoice number','err');return;}
-    toast('Invoice '+res.invoiceNo+' prepared — send when ready','ok');
-    // Store pending invoice data for send step
-    job._pendingInvNo=res.invoiceNo;
-    job._pendingItems=items;
-  }).catch(function(err){toast('Error: '+err.message,'err');});
+function doGenerateInv(job) {
+  var items = getInvLines(job.id);
+  if (!items.length || !items[0].desc) { toast('Add at least one line item', 'err'); return; }
+  var client = clients.find(function(c){ return c.name === job.client_name || c.client_id === job.client_id; });
+  var code = client ? client.code : '00';
+  getNextInvoiceNo(code).then(function(invNo) {
+    job._pendingInvNo = invNo;
+    job._pendingItems = items;
+    toast('Invoice ' + invNo + ' ready — click Send to email', 'ok');
+  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
-function doSendInv(job){
-  if(!job._pendingInvNo){toast('Generate invoice first','err');return;}
-  if(!confirm('Send invoice '+job._pendingInvNo+' to client?')) return;
-  toast('Sending… (coming soon)','ok');
-  // TODO: implement email send via Graph API sendMail
+function doSendInv(job) {
+  if (!job._pendingInvNo) { toast('Click Generate first', 'err'); return; }
+  if (!confirm('Send invoice ' + job._pendingInvNo + ' to client?')) return;
+  toast('Send invoice — coming soon', 'ok');
 }
 
-function doMarkPaid(job){
-  if(!confirm('Mark as Paid?')) return;
-  toast('Marking paid… (coming soon)','ok');
-  // TODO: implement markInvoicePaid script call
+function doMarkPaid(job) {
+  if (!confirm('Mark as Paid?')) return;
+  sb.from('invoice_data').update({ payment_status: 'Paid' })
+    .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1)
+    .then(function() {
+      job.payment_status = 'Paid';
+      toast('Marked as Paid', 'ok');
+      renderInvoicing();
+    }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
 // ════════════════════════════════════════════════
-//  PAYOUT PAGE
+//  PAYOUT
 // ════════════════════════════════════════════════
-function loadPayoutPage(){
-  loadPayoutRows().then(function(){renderPayout();}).catch(function(err){toast('Failed to load payout: '+err.message,'err');});
+function loadPayoutPage() {
+  loadPayoutData().then(function(){ renderPayout(); }).catch(function(err){ toast('Failed: ' + err.message, 'err'); });
 }
 
-function renderPayout(){
+function renderPayout() {
   renderCN(); renderLM();
-  var cnUnpaidAud=cnRows.filter(function(r){return r.paid!=='Paid';}).reduce(function(s,r){return s+r.fee;},0);
-  var cnUnpaidRp =cnRows.filter(function(r){return r.paid!=='Paid';}).reduce(function(s,r){return s+r.conv;},0);
-  var lmUnpaidRp =lmRows.filter(function(r){return r.paid!=='Paid';}).reduce(function(s,r){return s+r.fee;},0);
-  document.getElementById('cn-unpaid-aud').textContent='A$ '+cnUnpaidAud.toFixed(2);
-  document.getElementById('cn-unpaid-rp').textContent ='Rp '+cnUnpaidRp.toLocaleString('id-ID');
-  document.getElementById('lm-unpaid-rp').textContent ='Rp '+lmUnpaidRp.toLocaleString('id-ID');
-  document.getElementById('lm-total-jobs').textContent=lmRows.length;
+  var cnUnpaidAud = cnRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.fee||0); }, 0);
+  var cnUnpaidRp  = cnRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  var lmUnpaidRp  = lmRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.fee||0); }, 0);
+  document.getElementById('cn-unpaid-aud').textContent = 'A$ ' + cnUnpaidAud.toFixed(2);
+  document.getElementById('cn-unpaid-rp').textContent  = 'Rp ' + Math.round(cnUnpaidRp).toLocaleString('id-ID');
+  document.getElementById('lm-unpaid-rp').textContent  = 'Rp ' + Math.round(lmUnpaidRp).toLocaleString('id-ID');
+  document.getElementById('lm-total-jobs').textContent = lmRows.length;
 }
 
-function renderCN(){
-  var tbody=document.getElementById('cn-tbody'); tbody.innerHTML='';
-  var totalAud=0,totalRp=0;
-  cnRows.forEach(function(r,i){
-    var isPaid=r.paid==='Paid';
-    if(!isPaid){totalAud+=r.fee;totalRp+=r.conv;}
-    var tr=document.createElement('tr');
-    if(i%2===0) tr.style.background='var(--surface2)';
-    tr.innerHTML='<td class="td-mono" style="font-weight:600">'+esc(r.jobNo)+'</td>'+
-      '<td class="td-mono">'+esc(r.rev)+'</td>'+
-      '<td style="font-size:11px">'+esc(shortClient(r.client))+'</td>'+
-      '<td style="text-align:center"><span style="font-size:10px;padding:2px 6px;border-radius:3px;font-family:DM Mono,monospace;background:'+(r.svDraft?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(r.svDraft?'var(--invoicing-txt)':'var(--booked-txt)')+'">'+esc(r.svDraft||'—')+'</span></td>'+
-      '<td style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>'+
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">A$ '+r.fee.toFixed(2)+'</td>'+
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px">Rp '+r.conv.toLocaleString('id-ID')+'</td>'+
-      '<td style="text-align:center"><button style="font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid '+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="cn" data-idx="'+i+'">'+r.paid+'</button></td>';
+function renderCN() {
+  var tbody = document.getElementById('cn-tbody'); tbody.innerHTML = '';
+  var totalAud = 0, totalRp = 0;
+  cnRows.forEach(function(r, i) {
+    var isPaid = r.paid === 'Paid';
+    if (!isPaid) { totalAud += r.fee || 0; totalRp += r.conv || 0; }
+    var tr = document.createElement('tr');
+    if (i % 2 === 0) tr.style.background = 'var(--surface2)';
+    tr.innerHTML =
+      '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
+      '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
+      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
+      '<td style="text-align:center;font-size:10px">'+esc(r.sv_draft||'—')+'</td>' +
+      '<td style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
+      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+((r.fee||0).toFixed(2))+'</td>' +
+      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px">'+Math.round(r.conv||0).toLocaleString('id-ID')+'</td>' +
+      '<td style="text-align:center"><button style="font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid '+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="cn" data-id="'+r.id+'">'+r.paid+'</button></td>';
     tbody.appendChild(tr);
   });
-  document.getElementById('cn-total-aud').textContent='A$ '+totalAud.toFixed(2);
-  document.getElementById('cn-total-rp').textContent='Rp '+totalRp.toLocaleString('id-ID');
+  document.getElementById('cn-total-aud').textContent = totalAud.toFixed(2);
+  document.getElementById('cn-total-rp').textContent  = Math.round(totalRp).toLocaleString('id-ID');
+  document.getElementById('cn-unpaid-aud').textContent= 'A$ ' + totalAud.toFixed(2);
+  document.getElementById('cn-unpaid-rp').textContent = 'Rp ' + Math.round(totalRp).toLocaleString('id-ID');
 }
 
-function renderLM(){
-  var tbody=document.getElementById('lm-tbody'); tbody.innerHTML='';
-  var totalRp=0;
-  lmRows.forEach(function(r,i){
-    var isPaid=r.paid==='Paid';
-    if(!isPaid) totalRp+=r.fee;
-    var tr=document.createElement('tr');
-    if(i%2===0) tr.style.background='var(--surface2)';
-    tr.innerHTML='<td class="td-mono" style="font-weight:600">'+esc(r.jobNo)+'</td>'+
-      '<td class="td-mono">'+esc(r.rev)+'</td>'+
-      '<td style="font-size:11px">'+esc(shortClient(r.client))+'</td>'+
-      '<td style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>'+
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">Rp '+r.fee.toLocaleString('id-ID')+'</td>'+
-      '<td style="text-align:center"><button style="font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid '+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="lm" data-idx="'+i+'">'+r.paid+'</button></td>';
+function renderLM() {
+  var tbody = document.getElementById('lm-tbody'); tbody.innerHTML = '';
+  var totalRp = 0;
+  lmRows.forEach(function(r, i) {
+    var isPaid = r.paid === 'Paid';
+    if (!isPaid) totalRp += r.fee || 0;
+    var tr = document.createElement('tr');
+    if (i % 2 === 0) tr.style.background = 'var(--surface2)';
+    tr.innerHTML =
+      '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
+      '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
+      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
+      '<td style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
+      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+Math.round(r.fee||0).toLocaleString('id-ID')+'</td>' +
+      '<td style="text-align:center"><button style="font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid '+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="lm" data-id="'+r.id+'">'+r.paid+'</button></td>';
     tbody.appendChild(tr);
   });
-  document.getElementById('lm-total-rp').textContent='Rp '+totalRp.toLocaleString('id-ID');
+  document.getElementById('lm-total-rp').textContent  = Math.round(totalRp).toLocaleString('id-ID');
+  document.getElementById('lm-unpaid-rp').textContent = 'Rp ' + Math.round(totalRp).toLocaleString('id-ID');
+  document.getElementById('lm-total-jobs').textContent= lmRows.length;
 }
 
-function togglePayoutPaid(person,idx){
-  var arr=person==='cn'?cnRows:lmRows;
-  var r=arr[idx];
-  var newPaid=r.paid==='Paid'?'Nope':'Paid';
-  runOfficeScript(BK_PATH,'savePayoutRow',{
-    person:person.toUpperCase(),
-    rowIndex:r.rowIndex,
-    fee:r.fee, rate:r.rate||0, conv:r.conv||0,
-    note:r.note||'', svDraft:r.svDraft||'',
-    paid:newPaid
-  }).then(function(res){
-    if(!res||!res.ok){toast('Failed to update','err');return;}
-    r.paid=newPaid;
-    toast((newPaid==='Paid'?'Marked Paid':'Marked Unpaid'),'ok');
+function togglePayoutPaid(person, id) {
+  var arr = person === 'cn' ? cnRows : lmRows;
+  var r   = arr.find(function(x){ return x.id === id; }); if (!r) return;
+  var newPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
+  updatePayoutPaid(id, newPaid).then(function() {
+    r.paid = newPaid;
+    toast((newPaid === 'Paid' ? 'Marked Paid' : 'Marked Unpaid'), 'ok');
     renderPayout();
-  }).catch(function(err){toast('Error: '+err.message,'err');});
+  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
 // ════════════════════════════════════════════════
 //  CLIENTS
 // ════════════════════════════════════════════════
-function renderClients(){
-  document.getElementById('clients-sub').textContent=clients.length+' clients';
-  var g=document.getElementById('clients-grid');
-  if(!clients.length){g.innerHTML='<div class="empty"><span class="empty-ico">&#128101;</span><p class="empty-title">No clients</p></div>';return;}
-  g.innerHTML=clients.map(function(c){
-    return '<div class="client-card" data-clientid="'+c.clientId+'">'+
-      '<div class="client-code">Client '+esc(c.code)+'</div>'+
-      '<div class="client-name">'+esc(c.name)+'</div>'+
-      (c.emailTo?'<div class="client-email">&#9993; '+esc(c.emailTo)+'</div>':'')+
-      (c.emailCC?'<div class="client-email" style="font-size:11px">CC: '+esc(c.emailCC)+'</div>':'')+
-      (c.address?'<div style="font-size:11px;color:var(--text-soft);margin-top:6px">'+esc(c.address)+'</div>':'')+
+function renderClients() {
+  document.getElementById('clients-sub').textContent = clients.length + ' clients';
+  var g = document.getElementById('clients-grid');
+  if (!clients.length) { g.innerHTML = '<div class="empty"><span class="empty-ico">&#128101;</span><p class="empty-title">No clients</p></div>'; return; }
+  g.innerHTML = clients.map(function(c) {
+    return '<div class="client-card" data-clientid="'+c.client_id+'">' +
+      '<div class="client-code">Client '+esc(c.code)+'</div>' +
+      '<div class="client-name">'+esc(c.name)+'</div>' +
+      (c.email_to ? '<div class="client-email">&#9993; '+esc(c.email_to)+'</div>' : '') +
+      (c.email_cc ? '<div class="client-email" style="font-size:11px">CC: '+esc(c.email_cc)+'</div>' : '') +
+      (c.address  ? '<div style="font-size:11px;color:var(--text-soft);margin-top:6px">'+esc(c.address)+'</div>' : '') +
     '</div>';
   }).join('');
 }
 
-function openClientModal(clientId){
-  var c=clientId?clients.find(function(x){return x.clientId===clientId;}):null;
-  document.getElementById('cm-title').textContent=c?'Edit Client':'Add Client';
-  document.getElementById('cm-id').value     =c?c.clientId:'';
-  document.getElementById('cm-code').value   =c?c.code:'';
-  document.getElementById('cm-name').value   =c?c.name:'';
-  document.getElementById('cm-address').value=c?c.address:'';
-  document.getElementById('cm-emailto').value=c?c.emailTo:'';
-  document.getElementById('cm-emailcc').value=c?c.emailCC:'';
+function openClientModal(clientId) {
+  var c = clientId ? clients.find(function(x){ return x.client_id === clientId; }) : null;
+  document.getElementById('cm-title').textContent  = c ? 'Edit Client' : 'Add Client';
+  document.getElementById('cm-id').value      = c ? c.client_id : '';
+  document.getElementById('cm-code').value    = c ? c.code : '';
+  document.getElementById('cm-name').value    = c ? c.name : '';
+  document.getElementById('cm-address').value = c ? c.address : '';
+  document.getElementById('cm-emailto').value = c ? c.email_to : '';
+  document.getElementById('cm-emailcc').value = c ? c.email_cc : '';
   document.getElementById('modal-client').classList.add('open');
 }
 
-function saveClient(){
-  if(!document.getElementById('cm-name').value.trim()||!document.getElementById('cm-id').value.trim()){toast('Name and ID required','err');return;}
-  toast('Client saved (coming soon)','ok');
-  closeModal('modal-client');
+function saveClient() {
+  var name = document.getElementById('cm-name').value.trim();
+  var id   = document.getElementById('cm-id').value.trim();
+  if (!name || !id) { toast('Name and ID required', 'err'); return; }
+  var data = {
+    client_id: id,
+    code:      document.getElementById('cm-code').value.trim(),
+    name,
+    address:   document.getElementById('cm-address').value.trim(),
+    email_to:  document.getElementById('cm-emailto').value.trim(),
+    email_cc:  document.getElementById('cm-emailcc').value.trim(),
+  };
+  sb.from('clients').upsert(data, { onConflict: 'client_id' }).then(function() {
+    toast('Client saved', 'ok');
+    closeModal('modal-client');
+    loadClients().then(renderClients);
+  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
 // ════════════════════════════════════════════════
 //  MODALS
 // ════════════════════════════════════════════════
-function closeModal(id){document.getElementById(id).classList.remove('open');editingJob=null;}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); editingJob = null; }
 
 // ════════════════════════════════════════════════
 //  UTILS
 // ════════════════════════════════════════════════
-function toast(msg,type){
-  var c=document.getElementById('toasts'),t=document.createElement('div');
-  t.className='toast '+(type||''); t.textContent=msg; c.appendChild(t);
-  setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},4000);
+function toast(msg, type) {
+  var c = document.getElementById('toasts'), t = document.createElement('div');
+  t.className = 'toast ' + (type||''); t.textContent = msg; c.appendChild(t);
+  setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
 }
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function shortClient(n){return (n||'').replace(' Pty Ltd','').replace(' Consulting Engineers','').replace(' Engineering Group',' Group');}
-function stagePill(p){var m={'Booked':'pill-booked','In Progress':'pill-inprog','Invoicing':'pill-invoicing','Completed':'pill-complete','Ext Checking':'pill-inprog'};return '<span class="stage-pill '+(m[p]||'pill-booked')+'">'+esc(p)+'</span>';}
-function di(label,val,full){return '<div class="detail-item'+(full?' style="grid-column:span 2"':'')+'"><label>'+label+'</label><span>'+val+'</span></div>';}
-function selF(id,label,opts,val){return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>';}
-function dtF(id,label,val){return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+(val||'')+'"></div>';}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function shortClient(n){ return (n||'').replace(' Pty Ltd','').replace(' Consulting Engineers','').replace(' Engineering Group',' Group'); }
+function stagePill(p){ var m={'Booked':'pill-booked','In Progress':'pill-inprog','Invoicing':'pill-invoicing','Completed':'pill-complete','Ext Checking':'pill-inprog'}; return '<span class="stage-pill '+(m[p]||'pill-booked')+'">'+esc(p)+'</span>'; }
+function di(label, val, full){ return '<div class="detail-item'+(full?' style="grid-column:span 2"':'')+'"><label>'+label+'</label><span>'+val+'</span></div>'; }
+function selF(id, label, opts, val){ return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; }
+function dtF(id, label, val){ return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+(val||'')+'"></div>'; }
 
 // ════════════════════════════════════════════════
-//  BOOT — wire all events
+//  BOOT
 // ════════════════════════════════════════════════
 (function(){
   // Auth
-  document.getElementById('login-btn').addEventListener('click',signIn);
-  document.getElementById('signout-btn').addEventListener('click',signOut);
+  document.getElementById('login-btn').addEventListener('click', signIn);
+  document.getElementById('login-password').addEventListener('keydown', function(e){ if(e.key==='Enter') signIn(); });
+  document.getElementById('signout-btn').addEventListener('click', signOut);
 
   // Theme
-  document.getElementById('theme-btn').addEventListener('click',toggleTheme);
+  document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
   // Nav
-  document.getElementById('nav-board').addEventListener('click',    function(){nav('board',this);});
-  document.getElementById('nav-newjob').addEventListener('click',   function(){nav('newjob',this);});
-  document.getElementById('nav-invoicing').addEventListener('click',function(){nav('invoicing',this);});
-  document.getElementById('nav-payout').addEventListener('click',   function(){nav('payout',this);});
-  document.getElementById('nav-clients').addEventListener('click',  function(){nav('clients',this);});
+  document.getElementById('nav-board').addEventListener('click',     function(){ nav('board',this); });
+  document.getElementById('nav-newjob').addEventListener('click',    function(){ nav('newjob',this); });
+  document.getElementById('nav-invoicing').addEventListener('click', function(){ nav('invoicing',this); });
+  document.getElementById('nav-payout').addEventListener('click',    function(){ nav('payout',this); });
+  document.getElementById('nav-clients').addEventListener('click',   function(){ nav('clients',this); });
 
   // View toggle
-  document.getElementById('vt-kanban').addEventListener('click',function(){setView('kanban');});
-  document.getElementById('vt-table').addEventListener('click', function(){setView('table');});
+  document.getElementById('vt-kanban').addEventListener('click', function(){ setView('kanban'); });
+  document.getElementById('vt-table').addEventListener('click',  function(){ setView('table'); });
 
   // Board
-  document.getElementById('btn-newjob-hdr').addEventListener('click',function(){nav('newjob',document.getElementById('nav-newjob'));});
-  document.getElementById('sf-all').addEventListener('click',      function(){setStageFilter('all',this);});
-  document.getElementById('sf-booked').addEventListener('click',   function(){setStageFilter('Booked',this);});
-  document.getElementById('sf-inprog').addEventListener('click',   function(){setStageFilter('In Progress',this);});
-  document.getElementById('sf-invoicing').addEventListener('click',function(){setStageFilter('Invoicing',this);});
-  document.getElementById('sf-completed').addEventListener('click',function(){setStageFilter('Completed',this);});
-  document.getElementById('btn-refresh-board').addEventListener('click',loadBoard);
-  document.getElementById('board-search').addEventListener('input',renderBoard);
+  document.getElementById('btn-newjob-hdr').addEventListener('click', function(){ nav('newjob', document.getElementById('nav-newjob')); });
+  document.getElementById('sf-all').addEventListener('click',       function(){ setStageFilter('all',this); });
+  document.getElementById('sf-booked').addEventListener('click',    function(){ setStageFilter('Booked',this); });
+  document.getElementById('sf-inprog').addEventListener('click',    function(){ setStageFilter('In Progress',this); });
+  document.getElementById('sf-invoicing').addEventListener('click', function(){ setStageFilter('Invoicing',this); });
+  document.getElementById('sf-completed').addEventListener('click', function(){ setStageFilter('Completed',this); });
+  document.getElementById('btn-refresh-board').addEventListener('click', loadBoard);
+  document.getElementById('board-search').addEventListener('input', renderBoard);
 
   // New job
-  document.getElementById('btn-newjob-cancel').addEventListener('click',function(){nav('board',document.getElementById('nav-board'));});
-  document.getElementById('nj-submit').addEventListener('click',submitNewJob);
+  document.getElementById('btn-newjob-cancel').addEventListener('click', function(){ nav('board', document.getElementById('nav-board')); });
+  document.getElementById('nj-submit').addEventListener('click', submitNewJob);
 
   // Invoicing
-  document.getElementById('btn-refresh-inv').addEventListener('click',loadInvoicingPage);
-  document.getElementById('if-all').addEventListener('click',     function(){setInvFilter('all',this);});
-  document.getElementById('if-unpaid').addEventListener('click',  function(){setInvFilter('Unpaid',this);});
-  document.getElementById('if-invoiced').addEventListener('click',function(){setInvFilter('Invoiced',this);});
-  document.getElementById('inv-search').addEventListener('input',renderInvoicing);
+  document.getElementById('btn-refresh-inv').addEventListener('click', loadInvoicingPage);
+  document.getElementById('if-all').addEventListener('click',      function(){ setInvFilter('all',this); });
+  document.getElementById('if-unpaid').addEventListener('click',   function(){ setInvFilter('Unpaid',this); });
+  document.getElementById('if-invoiced').addEventListener('click', function(){ setInvFilter('Invoiced',this); });
+  document.getElementById('inv-search').addEventListener('input',  renderInvoicing);
 
   // Payout
-  document.getElementById('btn-refresh-payout').addEventListener('click',loadPayoutPage);
-  document.getElementById('cn-rate').addEventListener('change',function(){
-    var rate=parseFloat(this.value)||0;
-    cnRows.forEach(function(r){r.conv=Math.round(r.fee*rate);});
+  document.getElementById('btn-refresh-payout').addEventListener('click', loadPayoutPage);
+  document.getElementById('cn-rate').addEventListener('change', function(){
+    var rate = parseFloat(this.value) || 0;
+    cnRows.forEach(function(r){ r.conv = Math.round((r.fee||0) * rate); });
     renderCN();
   });
-  document.getElementById('page-payout').addEventListener('click',function(e){
-    var btn=e.target.closest('[data-person]');
-    if(btn) togglePayoutPaid(btn.getAttribute('data-person'),parseInt(btn.getAttribute('data-idx')));
+  document.getElementById('page-payout').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-person]');
+    if (btn) togglePayoutPaid(btn.getAttribute('data-person'), parseInt(btn.getAttribute('data-id')));
   });
 
   // Clients
-  document.getElementById('btn-add-client').addEventListener('click',function(){openClientModal();});
-  document.getElementById('clients-grid').addEventListener('click',function(e){
-    var card=e.target.closest('[data-clientid]');
-    if(card) openClientModal(card.getAttribute('data-clientid'));
+  document.getElementById('btn-add-client').addEventListener('click', function(){ openClientModal(); });
+  document.getElementById('clients-grid').addEventListener('click', function(e){
+    var card = e.target.closest('[data-clientid]');
+    if (card) openClientModal(card.getAttribute('data-clientid'));
   });
 
   // Modals
-  document.getElementById('md-close').addEventListener('click',  function(){closeModal('modal-detail');});
-  document.getElementById('md-cancel').addEventListener('click', function(){closeModal('modal-detail');});
+  document.getElementById('md-close').addEventListener('click',  function(){ closeModal('modal-detail'); });
+  document.getElementById('md-cancel').addEventListener('click', function(){ closeModal('modal-detail'); });
   document.getElementById('md-save').addEventListener('click',   saveJobDetail);
-  document.getElementById('cm-close').addEventListener('click',  function(){closeModal('modal-client');});
-  document.getElementById('cm-cancel').addEventListener('click', function(){closeModal('modal-client');});
+  document.getElementById('cm-close').addEventListener('click',  function(){ closeModal('modal-client'); });
+  document.getElementById('cm-cancel').addEventListener('click', function(){ closeModal('modal-client'); });
   document.getElementById('cm-save').addEventListener('click',   saveClient);
 
   // Modal backdrop
   document.querySelectorAll('.modal-bg').forEach(function(bg){
-    bg.addEventListener('click',function(e){if(e.target===bg) bg.classList.remove('open');});
+    bg.addEventListener('click', function(e){ if (e.target === bg) bg.classList.remove('open'); });
   });
 
   // Job card delegation
-  document.getElementById('view-kanban').addEventListener('click',function(e){
-    var card=e.target.closest('[data-rowindex]');
-    if(card) openJobDetail(parseInt(card.getAttribute('data-rowindex')));
+  document.getElementById('view-kanban').addEventListener('click', function(e){
+    var card = e.target.closest('[data-id]');
+    if (card) openJobDetail(parseInt(card.getAttribute('data-id')));
   });
-  document.getElementById('view-table').addEventListener('click',function(e){
-    var row=e.target.closest('[data-rowindex]');
-    if(row) openJobDetail(parseInt(row.getAttribute('data-rowindex')));
+  document.getElementById('view-table').addEventListener('click', function(e){
+    var row = e.target.closest('[data-id]');
+    if (row) openJobDetail(parseInt(row.getAttribute('data-id')));
   });
 
-  // Init MSAL
-  initMsal();
+  // Init auth
+  initAuth();
 }());
 </script>
 </body>
