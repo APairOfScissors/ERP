@@ -165,15 +165,15 @@ async function createJobFolders(token, clientCode, jobNo, address, bookingDateSt
     '09. Site Instructions', '10. Survey', '11. Energy Report', '12. Building Permit'
   ];
   for (var i = 0; i < subfolders.length; i++) {
-    await createFolder(token, jobPath, subfolders[i]);
+    await ensureFolder(token, jobPath, subfolders[i]);
   }
 
   var bookingDocsName = bookingDocsFolderName(bookingDateStr);
-  await createFolder(token, jobPath + '/01. Architecture', 'a. Working Docs');
-  await createFolder(token, jobPath + '/01. Architecture/a. Working Docs', bookingDocsName);
+  await ensureFolder(token, jobPath + '/01. Architecture', 'a. Working Docs');
+  await ensureFolder(token, jobPath + '/01. Architecture/a. Working Docs', bookingDocsName);
 
-  await createFolder(token, jobPath + '/07. Communication', 'Corres In');
-  await createFolder(token, jobPath + '/07. Communication', 'Corres Out');
+  await ensureFolder(token, jobPath + '/07. Communication', 'Corres In');
+  await ensureFolder(token, jobPath + '/07. Communication', 'Corres Out');
 
   return { jobPath: jobPath, bookingDocsPath: jobPath + '/01. Architecture/a. Working Docs/' + bookingDocsName };
 }
@@ -185,7 +185,7 @@ async function createInvoiceFolder(token, clientCode, jobNo, revision) {
     token, '03. Finance Documents/Invoices', clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]
   );
   await ensureFolder(token, '03. Finance Documents/Invoices', clientFolderName);
-  await createFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
+  await ensureFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
 }
 
 // Read-only equivalent of the job-folder path creation resolves — used by

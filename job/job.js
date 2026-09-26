@@ -59,6 +59,7 @@ function renderJob(job) {
     '</div>';
   document.getElementById('job-body').innerHTML = html;
   document.getElementById('job-save').addEventListener('click', saveJobDetail);
+  document.getElementById('job-upload-section').style.display = 'block';
 }
 
 function renderJobNotFound() {
@@ -123,6 +124,59 @@ async function openOneDriveFolder() {
 }
 
 // ════════════════════════════════════════════════
+//  ADD FILES TO ONEDRIVE (auto-creates the job's folder tree if it doesn't
+//  exist yet — the point being backlog jobs like 26-1021, booked before this
+//  integration existed, get their folder created the first time anyone drops
+//  a file on them here rather than needing a separate backfill step)
+// ════════════════════════════════════════════════
+function addUploadedChip(filename) {
+  var el = document.getElementById('job-file-list');
+  var chip = document.createElement('span'); chip.className = 'file-chip';
+  chip.textContent = '✓ ' + filename;
+  el.appendChild(chip);
+}
+
+async function handleJobFiles(fileList) {
+  if (!currentJob) { toast('No job loaded', 'err'); return; }
+  var files = Array.prototype.slice.call(fileList);
+  if (!files.length) return;
+
+  var zone = document.getElementById('job-dropzone');
+  zone.style.pointerEvents = 'none'; zone.style.opacity = '0.6';
+  try {
+    var clientsList = await loadClients();
+    var client = findClientByName(clientsList, currentJob.client_name);
+    if (!client || !client.code) throw new Error('No client code found for "' + currentJob.client_name + '"');
+
+    toast('Preparing OneDrive folder…', 'ok');
+    var token = await getGraphToken();
+    var todayStr = new Date().toISOString().slice(0,10);
+    var paths = await createJobFolders(token, client.code, currentJob.job_no, currentJob.address, todayStr);
+    await createInvoiceFolder(token, client.code, currentJob.job_no, currentJob.revision);
+    await uploadFilesToOneDrive(token, paths.jobPath + '/01. Architecture/a. Working Docs', files);
+    files.forEach(function(f){ addUploadedChip(f.name); });
+    toast('Uploaded ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' to OneDrive', 'ok');
+  } catch (err) {
+    toast('OneDrive upload failed: ' + err.message, 'err');
+  } finally {
+    zone.style.pointerEvents = ''; zone.style.opacity = '';
+  }
+}
+
+function initJobDropzone() {
+  var zone  = document.getElementById('job-dropzone');
+  var input = document.getElementById('job-files');
+  zone.addEventListener('click', function(){ input.click(); });
+  input.addEventListener('change', function(){ handleJobFiles(input.files); input.value = ''; });
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files) handleJobFiles(e.dataTransfer.files);
+  });
+}
+
+// ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
 (async function() {
@@ -132,6 +186,7 @@ async function openOneDriveFolder() {
   renderUserInfo(user);
 
   document.getElementById('job-onedrive').addEventListener('click', openOneDriveFolder);
+  initJobDropzone();
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';
