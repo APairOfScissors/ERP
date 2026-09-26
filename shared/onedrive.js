@@ -2,13 +2,22 @@
 //  ONEDRIVE FOLDER CREATION + FILE UPLOAD (New Job page + Job detail's
 //  "Open in OneDrive" button)
 //  Mirrors Steven's existing OneDrive structure:
-//    02. Engineering Documents/02. Client Jobs/{ClientFolder}/{JobNo} - {Address}/...
+//    02. Engineering Documents/02. Client Jobs/{ClientFolder}/[{Year}/]{JobNo} - {Address}/...
 //    03. Finance Documents/Invoices/{ClientFolder}/{JobNo}-{Rev}/
+//  Dexcon job numbers ("25-1015", "26-1005") encode a booking year, and those
+//  jobs live one level deeper under a folder for that year; Arax/Forenx numbers
+//  don't have that shape, so they skip the extra level entirely.
 // ════════════════════════════════════════════════
+
+// Only the numeric prefix is reliable — the wording after it isn't guaranteed to
+// match exactly what's actually in OneDrive (e.g. real folder is
+// "03. Forenx Consulting Engineers", not this fallback). These are used only as
+// a name to create a brand-new client folder with; an existing folder is always
+// resolved by listing + matching the "NN." prefix instead (see resolveClientFolderName).
 var ONEDRIVE_CLIENT_FOLDERS = {
   '01': '01. Dexcon Engineering Group',
   '02': '02. Arax Consulting',
-  '03': '03. Forenx'
+  '03': '03. Forenx Consulting Engineers'
 };
 
 // Files over this size use a chunked upload session instead of a single PUT
@@ -29,15 +38,56 @@ function encodeGraphPath(path) {
   return path.split('/').map(encodeURIComponent).join('/');
 }
 
-// The job's folder path relative to OneDrive root — shared by folder creation
-// and the "Open in OneDrive" button so both agree on exactly the same path.
-function jobFolderPath(clientFolderName, jobNo, address) {
-  return '02. Engineering Documents/02. Client Jobs/' + clientFolderName + '/' + sanitizeFolderName(jobNo + ' - ' + address);
+// "26-1005" -> "26", "ER604" -> null, "260864" -> null (only Dexcon's scheme has this shape)
+function jobYearPrefix(jobNo) {
+  var m = /^(\d{2})-/.exec(jobNo || '');
+  return m ? m[1] : null;
 }
 
 // "2026-09-27" -> "2026.09.27 - Full Job Booking"
 function bookingDocsFolderName(bookingDateStr) {
   return (bookingDateStr || '').split('-').join('.') + ' - Full Job Booking';
+}
+
+// Lists the immediate child item names of a folder. Missing parent -> empty
+// list rather than throwing, since "nothing there yet" is a normal first-run state.
+async function listChildNames(token, path) {
+  var url = path
+    ? 'https://graph.microsoft.com/v1.0/me/drive/root:/' + encodeGraphPath(path) + ':/children?$select=name'
+    : 'https://graph.microsoft.com/v1.0/me/drive/root/children?$select=name';
+  var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  if (res.status === 404) return [];
+  if (!res.ok) {
+    var errText = await res.text();
+    throw new Error('Could not list "' + path + '" (' + res.status + '): ' + errText.slice(0,200));
+  }
+  var data = await res.json();
+  return (data.value || []).map(function(item){ return item.name; });
+}
+
+// Finds a real, existing child folder by a match rule rather than assuming exact
+// wording — the name Steven actually gave a folder isn't guaranteed to match any
+// hardcoded guess (this is exactly what bit us: real folder was
+// "03. Forenx Consulting Engineers", not "03. Forenx"). Falls back to fallbackName
+// only when nothing matches yet (i.e. it's about to be created fresh).
+async function resolveChildFolderName(token, basePath, matchFn, fallbackName) {
+  var names = await listChildNames(token, basePath);
+  var match = names.find(matchFn);
+  return match || fallbackName;
+}
+
+async function resolveClientFolderName(token, basePath, clientCode, fallbackName) {
+  return resolveChildFolderName(token, basePath, function(name) {
+    return name && name.indexOf(clientCode + '.') === 0;
+  }, fallbackName);
+}
+
+// Year folders are assumed to be literally "25"/"26" unless something else is
+// already there (e.g. "25 Jobs") — matches an exact name or that name as a prefix.
+async function resolveYearFolderName(token, basePath, yearPrefix) {
+  return resolveChildFolderName(token, basePath, function(name) {
+    return name === yearPrefix || (name && name.indexOf(yearPrefix) === 0 && /^\D/.test(name.slice(yearPrefix.length) || ' '));
+  }, yearPrefix);
 }
 
 // Confirms a folder exists at parentPath/name, creating it only if missing.
@@ -73,16 +123,41 @@ async function createFolder(token, parentPath, name) {
   }
 }
 
+// Resolves (without creating) the folder a job's own folder lives directly under:
+// the client folder, plus a year subfolder for Dexcon-style job numbers. Shared by
+// creation and the read-only "Open in OneDrive" lookup so they can't disagree.
+async function resolveJobParentPath(token, clientCode, jobNo) {
+  var clientJobsBase = '02. Engineering Documents/02. Client Jobs';
+  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]);
+  var parentPath = clientJobsBase + '/' + clientFolderName;
+  var yearPrefix = jobYearPrefix(jobNo);
+  if (yearPrefix) {
+    var yearFolderName = await resolveYearFolderName(token, parentPath, yearPrefix);
+    parentPath = parentPath + '/' + yearFolderName;
+  }
+  return parentPath;
+}
+
 // Returns { jobPath, bookingDocsPath } once the full tree exists.
-async function createJobFolders(token, clientFolderName, jobNo, address, bookingDateStr) {
+async function createJobFolders(token, clientCode, jobNo, address, bookingDateStr) {
   await ensureFolder(token, '', '02. Engineering Documents');
   await ensureFolder(token, '02. Engineering Documents', '02. Client Jobs');
-  await ensureFolder(token, '02. Engineering Documents/02. Client Jobs', clientFolderName);
+  var clientJobsBase = '02. Engineering Documents/02. Client Jobs';
 
-  var jobBasePath  = '02. Engineering Documents/02. Client Jobs/' + clientFolderName;
+  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]);
+  await ensureFolder(token, clientJobsBase, clientFolderName);
+  var parentPath = clientJobsBase + '/' + clientFolderName;
+
+  var yearPrefix = jobYearPrefix(jobNo);
+  if (yearPrefix) {
+    var yearFolderName = await resolveYearFolderName(token, parentPath, yearPrefix);
+    await ensureFolder(token, parentPath, yearFolderName);
+    parentPath = parentPath + '/' + yearFolderName;
+  }
+
   var jobFolderName = sanitizeFolderName(jobNo + ' - ' + address);
-  await ensureFolder(token, jobBasePath, jobFolderName);
-  var jobPath = jobBasePath + '/' + jobFolderName;
+  await ensureFolder(token, parentPath, jobFolderName);
+  var jobPath = parentPath + '/' + jobFolderName;
 
   var subfolders = [
     '01. Architecture', '02. Structural', '03. Civil', '04. Geo', '05. PSI',
@@ -103,11 +178,21 @@ async function createJobFolders(token, clientFolderName, jobNo, address, booking
   return { jobPath: jobPath, bookingDocsPath: jobPath + '/01. Architecture/a. Working Docs/' + bookingDocsName };
 }
 
-async function createInvoiceFolder(token, clientFolderName, jobNo, revision) {
+async function createInvoiceFolder(token, clientCode, jobNo, revision) {
   await ensureFolder(token, '', '03. Finance Documents');
   await ensureFolder(token, '03. Finance Documents', 'Invoices');
+  var clientFolderName = await resolveClientFolderName(
+    token, '03. Finance Documents/Invoices', clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]
+  );
   await ensureFolder(token, '03. Finance Documents/Invoices', clientFolderName);
   await createFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
+}
+
+// Read-only equivalent of the job-folder path creation resolves — used by
+// "Open in OneDrive" so it points at exactly the same folder, without creating anything.
+async function resolveJobFolderPath(token, clientCode, jobNo, address) {
+  var parentPath = await resolveJobParentPath(token, clientCode, jobNo);
+  return parentPath + '/' + sanitizeFolderName(jobNo + ' - ' + address);
 }
 
 // Looks up a folder's own OneDrive web link (used by the "Open in OneDrive" button).
@@ -192,18 +277,17 @@ async function uploadFilesToOneDrive(token, folderPath, files) {
 // `files` is optional — an array/FileList of booking documents to drop into
 // 01. Architecture/a. Working Docs/{date} - Full Job Booking/.
 function createOneDriveFoldersInBackground(client, jobNo, revision, address, bookingDateStr, files) {
-  var clientFolderName = client && ONEDRIVE_CLIENT_FOLDERS[client.code];
-  if (!clientFolderName) {
-    toast('OneDrive folders skipped — no folder mapping for "' + (client ? client.name : 'this client') + '"', 'err');
+  if (!client || !client.code) {
+    toast('OneDrive folders skipped — no client code for "' + (client ? client.name : 'this client') + '"', 'err');
     return;
   }
   toast('Creating OneDrive folders…', 'ok');
   var paths;
   getGraphToken().then(function(token) {
-    return createJobFolders(token, clientFolderName, jobNo, address, bookingDateStr)
+    return createJobFolders(token, client.code, jobNo, address, bookingDateStr)
       .then(function(p) {
         paths = p;
-        return createInvoiceFolder(token, clientFolderName, jobNo, revision);
+        return createInvoiceFolder(token, client.code, jobNo, revision);
       })
       .then(function() {
         if (files && files.length) return uploadFilesToOneDrive(token, paths.bookingDocsPath, files);

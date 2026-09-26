@@ -109,10 +109,9 @@ async function openOneDriveFolder() {
   try {
     var clientsList = await loadClients();
     var client = clientsList.find(function(c){ return c.name === currentJob.client_name; });
-    var folderName = client && ONEDRIVE_CLIENT_FOLDERS[client.code];
-    if (!folderName) throw new Error('No OneDrive folder mapping for "' + (client ? client.name : currentJob.client_name) + '"');
-    var path = jobFolderPath(folderName, currentJob.job_no, currentJob.address);
+    if (!client || !client.code) throw new Error('No client code found for "' + currentJob.client_name + '"');
     var token = await getGraphToken();
+    var path = await resolveJobFolderPath(token, client.code, currentJob.job_no, currentJob.address);
     var url = await getFolderWebUrl(token, path);
     if (win) win.location.href = url; else window.open(url, '_blank');
   } catch (err) {
