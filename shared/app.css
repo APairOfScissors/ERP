@@ -218,6 +218,13 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 .field input:focus,.field select:focus{border-color:var(--rule-mid);background:var(--surface)}
 .form-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-soft);padding:14px 0 8px;border-top:1px solid var(--rule);grid-column:span 2;font-family:'DM Mono',monospace}
 .form-section:first-child{border-top:none;padding-top:0}
+.dropzone{border:2px dashed var(--rule-mid);border-radius:8px;padding:22px;text-align:center;cursor:pointer;color:var(--text-soft);font-size:12.5px;transition:all 0.13s}
+.dropzone:hover,.dropzone.dragover{border-color:var(--accent);color:var(--text);background:var(--surface2)}
+.dropzone input[type=file]{display:none}
+.file-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.file-chip{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;background:var(--surface2);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;color:var(--text)}
+.file-chip button{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:12px;padding:0;line-height:1}
+.file-chip button:hover{color:var(--overdue-txt)}
 .detail-section{margin-bottom:18px}
 .detail-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-soft);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--rule);font-family:'DM Mono',monospace}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}

@@ -6,6 +6,7 @@
 <title>Job Detail — LDW Engineering ERP</title>
 <script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/lib/msal-browser.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/app.css">
@@ -27,7 +28,10 @@
     <div class="page active" id="page-job">
       <div class="ph">
         <div><h1 class="ph-title" id="job-title">Job <span>Detail</span></h1><span class="ph-sub" id="job-sub">Loading…</span></div>
-        <div class="ph-right"><a class="btn btn-ghost" href="../board/">&larr; Back to Board</a></div>
+        <div class="ph-right">
+          <button class="btn btn-accent" id="job-onedrive">&#128193; Open in OneDrive</button>
+          <a class="btn btn-ghost" href="../board/">&larr; Back to Board</a>
+        </div>
       </div>
       <div id="job-body" style="max-width:760px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:24px"></div>
     </div>
@@ -39,6 +43,8 @@
 
 <script src="../shared/core.js"></script>
 <script src="../shared/nav.js"></script>
+<script src="../shared/msal.js"></script>
+<script src="../shared/onedrive.js"></script>
 <script src="job.js"></script>
 </body>
 </html>

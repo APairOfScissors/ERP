@@ -95,6 +95,35 @@ function saveJobDetail() {
 }
 
 // ════════════════════════════════════════════════
+//  OPEN IN ONEDRIVE
+// ════════════════════════════════════════════════
+async function openOneDriveFolder() {
+  if (!currentJob) { toast('No job loaded', 'err'); return; }
+
+  // Open the tab synchronously, before any await, so browsers don't treat the
+  // eventual navigation as an unrequested popup and block it.
+  var win = window.open('', '_blank');
+  var btn = document.getElementById('job-onedrive');
+  var origLabel = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Opening…';
+  try {
+    var clientsList = await loadClients();
+    var client = clientsList.find(function(c){ return c.name === currentJob.client_name; });
+    var folderName = client && ONEDRIVE_CLIENT_FOLDERS[client.code];
+    if (!folderName) throw new Error('No OneDrive folder mapping for "' + (client ? client.name : currentJob.client_name) + '"');
+    var path = jobFolderPath(folderName, currentJob.job_no, currentJob.address);
+    var token = await getGraphToken();
+    var url = await getFolderWebUrl(token, path);
+    if (win) win.location.href = url; else window.open(url, '_blank');
+  } catch (err) {
+    if (win) win.close();
+    toast('Could not open OneDrive: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.innerHTML = origLabel;
+  }
+}
+
+// ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
 (async function() {
@@ -102,6 +131,8 @@ function saveJobDetail() {
   var user = await requireAuth();
   if (!user) return;
   renderUserInfo(user);
+
+  document.getElementById('job-onedrive').addEventListener('click', openOneDriveFolder);
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

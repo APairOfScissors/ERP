@@ -44,6 +44,15 @@
           <div class="field"><label>Drafter (D)</label><select id="nj-drafter"><option value="">— None —</option><option>CN</option><option>SL</option></select></div>
           <div class="field"><label>SV Drafting</label><select id="nj-sv"><option value="">— None —</option><option>LM</option></select></div>
           <div class="field"><label>Checker</label><select id="nj-checker"><option value="">— None —</option><option>CN</option><option>SL</option><option>LM</option></select></div>
+          <div class="form-section">Booking Documents (optional)</div>
+          <div class="field span2">
+            <label>Upload to OneDrive — a. Working Docs</label>
+            <div class="dropzone" id="nj-dropzone">
+              <div>Drop files here, or click to browse</div>
+              <input type="file" id="nj-files" multiple>
+            </div>
+            <div class="file-chip-list" id="nj-file-list"></div>
+          </div>
         </div>
         <hr class="div">
         <div style="display:flex;gap:8px;justify-content:flex-end">

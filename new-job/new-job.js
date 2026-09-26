@@ -1,8 +1,48 @@
 var clients = [];
+var selectedFiles = []; // File objects queued to upload to OneDrive on booking
 
 async function insertJob(data) {
   var { error } = await sb.from('jobs').insert(data);
   if (error) throw error;
+}
+
+// ════════════════════════════════════════════════
+//  FILE DROPZONE
+// ════════════════════════════════════════════════
+function addFiles(fileList) {
+  Array.prototype.forEach.call(fileList, function(f) { selectedFiles.push(f); });
+  renderFileList();
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  var el = document.getElementById('nj-file-list');
+  el.innerHTML = '';
+  selectedFiles.forEach(function(f, i) {
+    var chip = document.createElement('span'); chip.className = 'file-chip';
+    var label = document.createElement('span'); label.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+    var rm = document.createElement('button'); rm.innerHTML = '&#x2715;'; rm.type = 'button';
+    rm.addEventListener('click', function(){ removeFile(i); });
+    chip.appendChild(label); chip.appendChild(rm);
+    el.appendChild(chip);
+  });
+}
+
+function initDropzone() {
+  var zone  = document.getElementById('nj-dropzone');
+  var input = document.getElementById('nj-files');
+  zone.addEventListener('click', function(){ input.click(); });
+  input.addEventListener('change', function(){ addFiles(input.files); input.value = ''; });
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
 }
 
 function initNewJob(list) {
@@ -56,9 +96,12 @@ function submitNewJob() {
     ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('nj-client').value = '';
 
-    // Booking is confirmed immediately — folder creation runs after, in the background,
-    // and just toasts its own success/failure without blocking or reversing the booking.
-    createOneDriveFoldersInBackground(clientObj, jobno, rev, address, bookDate);
+    // Booking is confirmed immediately — folder creation (and any queued file
+    // uploads) runs after, in the background, and just toasts its own
+    // success/failure without blocking or reversing the booking.
+    createOneDriveFoldersInBackground(clientObj, jobno, rev, address, bookDate, selectedFiles);
+    selectedFiles = [];
+    renderFileList();
   }).catch(function(err) {
     btn.disabled = false; btn.innerHTML = 'Book Job';
     toast('Error: ' + err.message, 'err');
@@ -75,6 +118,7 @@ function submitNewJob() {
   renderUserInfo(user);
 
   document.getElementById('nj-submit').addEventListener('click', submitNewJob);
+  initDropzone();
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

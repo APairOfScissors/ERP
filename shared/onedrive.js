@@ -1,5 +1,6 @@
 // ════════════════════════════════════════════════
-//  ONEDRIVE FOLDER CREATION (New Job page only)
+//  ONEDRIVE FOLDER CREATION + FILE UPLOAD (New Job page + Job detail's
+//  "Open in OneDrive" button)
 //  Mirrors Steven's existing OneDrive structure:
 //    02. Engineering Documents/02. Client Jobs/{ClientFolder}/{JobNo} - {Address}/...
 //    03. Finance Documents/Invoices/{ClientFolder}/{JobNo}-{Rev}/
@@ -9,6 +10,12 @@ var ONEDRIVE_CLIENT_FOLDERS = {
   '02': '02. Arax Consulting',
   '03': '03. Forenx'
 };
+
+// Files over this size use a chunked upload session instead of a single PUT
+// (Graph's simple-upload endpoint is unreliable much past this).
+var ONEDRIVE_SIMPLE_UPLOAD_LIMIT = 4 * 1024 * 1024;
+// Must be a multiple of 320 KiB per Graph's upload-session requirements.
+var ONEDRIVE_UPLOAD_CHUNK_SIZE = 5 * 1024 * 1024;
 
 function sanitizeFolderName(s) {
   return String(s || '')
@@ -20,6 +27,17 @@ function sanitizeFolderName(s) {
 
 function encodeGraphPath(path) {
   return path.split('/').map(encodeURIComponent).join('/');
+}
+
+// The job's folder path relative to OneDrive root — shared by folder creation
+// and the "Open in OneDrive" button so both agree on exactly the same path.
+function jobFolderPath(clientFolderName, jobNo, address) {
+  return '02. Engineering Documents/02. Client Jobs/' + clientFolderName + '/' + sanitizeFolderName(jobNo + ' - ' + address);
+}
+
+// "2026-09-27" -> "2026.09.27 - Full Job Booking"
+function bookingDocsFolderName(bookingDateStr) {
+  return (bookingDateStr || '').split('-').join('.') + ' - Full Job Booking';
 }
 
 // Confirms a folder exists at parentPath/name, creating it only if missing.
@@ -55,6 +73,7 @@ async function createFolder(token, parentPath, name) {
   }
 }
 
+// Returns { jobPath, bookingDocsPath } once the full tree exists.
 async function createJobFolders(token, clientFolderName, jobNo, address, bookingDateStr) {
   await ensureFolder(token, '', '02. Engineering Documents');
   await ensureFolder(token, '02. Engineering Documents', '02. Client Jobs');
@@ -74,11 +93,14 @@ async function createJobFolders(token, clientFolderName, jobNo, address, booking
     await createFolder(token, jobPath, subfolders[i]);
   }
 
+  var bookingDocsName = bookingDocsFolderName(bookingDateStr);
   await createFolder(token, jobPath + '/01. Architecture', 'a. Working Docs');
-  await createFolder(token, jobPath + '/01. Architecture/a. Working Docs', sanitizeFolderName(bookingDateStr + ' ' + jobNo + ' ' + address));
+  await createFolder(token, jobPath + '/01. Architecture/a. Working Docs', bookingDocsName);
 
   await createFolder(token, jobPath + '/07. Communication', 'Corres In');
   await createFolder(token, jobPath + '/07. Communication', 'Corres Out');
+
+  return { jobPath: jobPath, bookingDocsPath: jobPath + '/01. Architecture/a. Working Docs/' + bookingDocsName };
 }
 
 async function createInvoiceFolder(token, clientFolderName, jobNo, revision) {
@@ -88,20 +110,107 @@ async function createInvoiceFolder(token, clientFolderName, jobNo, revision) {
   await createFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
 }
 
+// Looks up a folder's own OneDrive web link (used by the "Open in OneDrive" button).
+async function getFolderWebUrl(token, path) {
+  var res = await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/' + encodeGraphPath(path), {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (res.status === 404) throw new Error('Folder not found on OneDrive — it may not have been created for this job yet.');
+  if (!res.ok) {
+    var errText = await res.text();
+    throw new Error('OneDrive lookup failed (' + res.status + '): ' + errText.slice(0,200));
+  }
+  var data = await res.json();
+  return data.webUrl;
+}
+
+// Uploads one file into folderPath, using a chunked session for anything over
+// ONEDRIVE_SIMPLE_UPLOAD_LIMIT. onProgress(percent) is optional.
+async function uploadFileToOneDrive(token, folderPath, file, onProgress) {
+  var basePath = encodeGraphPath(folderPath);
+  var filename = encodeURIComponent(file.name);
+
+  if (file.size <= ONEDRIVE_SIMPLE_UPLOAD_LIMIT) {
+    var res = await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/' + basePath + '/' + filename + ':/content', {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/octet-stream' },
+      body: file
+    });
+    if (!res.ok) {
+      var errText = await res.text();
+      throw new Error('Upload failed for "' + file.name + '" (' + res.status + '): ' + errText.slice(0,200));
+    }
+    if (onProgress) onProgress(100);
+    return;
+  }
+
+  var sessionRes = await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/' + basePath + '/' + filename + ':/createUploadSession', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename' } })
+  });
+  if (!sessionRes.ok) {
+    var sessErrText = await sessionRes.text();
+    throw new Error('Could not start upload session for "' + file.name + '": ' + sessErrText.slice(0,200));
+  }
+  var session = await sessionRes.json();
+  var uploadUrl = session.uploadUrl;
+  var size = file.size;
+  var start = 0;
+  while (start < size) {
+    var end = Math.min(start + ONEDRIVE_UPLOAD_CHUNK_SIZE, size);
+    var chunk = file.slice(start, end);
+    // The session URL is pre-authenticated by Graph — no Authorization header here.
+    var chunkRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Length': String(end - start),
+        'Content-Range': 'bytes ' + start + '-' + (end - 1) + '/' + size
+      },
+      body: chunk
+    });
+    if (!chunkRes.ok && chunkRes.status !== 202) {
+      var chunkErrText = await chunkRes.text();
+      throw new Error('Upload failed partway through "' + file.name + '" (' + chunkRes.status + '): ' + chunkErrText.slice(0,200));
+    }
+    start = end;
+    if (onProgress) onProgress(Math.round((start / size) * 100));
+  }
+}
+
+// Uploads every file in sequence (parallel uploads risk hitting Graph throttling),
+// toasting per-file progress so a slow/large batch doesn't look stalled.
+async function uploadFilesToOneDrive(token, folderPath, files) {
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    toast('Uploading ' + file.name + ' (' + (i+1) + '/' + files.length + ')…', 'ok');
+    await uploadFileToOneDrive(token, folderPath, file);
+  }
+}
+
 // Fire-and-forget: booking a job never waits on this. Toasts on completion either way.
-function createOneDriveFoldersInBackground(client, jobNo, revision, address, bookingDateStr) {
+// `files` is optional — an array/FileList of booking documents to drop into
+// 01. Architecture/a. Working Docs/{date} - Full Job Booking/.
+function createOneDriveFoldersInBackground(client, jobNo, revision, address, bookingDateStr, files) {
   var clientFolderName = client && ONEDRIVE_CLIENT_FOLDERS[client.code];
   if (!clientFolderName) {
     toast('OneDrive folders skipped — no folder mapping for "' + (client ? client.name : 'this client') + '"', 'err');
     return;
   }
   toast('Creating OneDrive folders…', 'ok');
+  var paths;
   getGraphToken().then(function(token) {
     return createJobFolders(token, clientFolderName, jobNo, address, bookingDateStr)
-      .then(function(){ return createInvoiceFolder(token, clientFolderName, jobNo, revision); });
+      .then(function(p) {
+        paths = p;
+        return createInvoiceFolder(token, clientFolderName, jobNo, revision);
+      })
+      .then(function() {
+        if (files && files.length) return uploadFilesToOneDrive(token, paths.bookingDocsPath, files);
+      });
   }).then(function() {
-    toast('OneDrive folders created', 'ok');
+    toast('OneDrive folders' + (files && files.length ? ' and files' : '') + ' created', 'ok');
   }).catch(function(err) {
-    toast('OneDrive folder creation failed: ' + err.message, 'err');
+    toast('OneDrive setup failed: ' + err.message, 'err');
   });
 }
