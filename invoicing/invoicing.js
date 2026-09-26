@@ -257,15 +257,72 @@ async function doSendInv(job, btnEl) {
   }
 }
 
-function doMarkPaid(job) {
+async function doMarkPaid(job) {
   if (!confirm('Mark as Paid?')) return;
-  sb.from('invoice_data').update({ payment_status: 'Paid' })
-    .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1)
-    .then(function() {
-      job.payment_status = 'Paid';
-      toast('Marked as Paid', 'ok');
-      renderInvoicing();
-    }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
+  try {
+    var { error: dataErr } = await sb.from('invoice_data').update({ payment_status: 'Paid' })
+      .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1);
+    if (dataErr) throw dataErr;
+
+    var { error: logErr } = await sb.from('invoice_log').update({ status: 'Paid', payment_status: 'Paid' })
+      .eq('job_no', job.job_no).eq('revision', job.revision || '');
+    if (logErr) throw logErr;
+
+    job.payment_status = 'Paid';
+    toast('Marked as Paid', 'ok');
+    renderInvoicing();
+
+    if (confirm('Also mark this job as Completed?')) {
+      await completeJobAndCreatePayouts(job.job_no, job.revision);
+    }
+  } catch (err) {
+    toast('Error: ' + err.message, 'err');
+  }
+}
+
+// Flips the job to Completed, then auto-creates blank engineer_payout rows for
+// whoever's assigned (CN as eng, LM as sv_drafting) — fee/rate left for Steven to fill in.
+async function completeJobAndCreatePayouts(jobNo, revision) {
+  var { data: jobRow, error: findErr } = await sb.from('jobs').select('*')
+    .eq('job_no', jobNo).eq('revision', revision || '').single();
+  if (findErr || !jobRow) { toast('Could not find job to complete: ' + (findErr ? findErr.message : 'not found'), 'err'); return; }
+
+  var { error: updErr } = await sb.from('jobs').update({ job_progress: 'Completed' }).eq('id', jobRow.id);
+  if (updErr) { toast('Error completing job: ' + updErr.message, 'err'); return; }
+  toast('Job marked Completed', 'ok');
+
+  await createPayoutRowsForJob(jobRow);
+}
+
+async function createPayoutRowsForJob(jobRow) {
+  var people = [];
+  if (jobRow.eng === 'CN') people.push('CN');
+  if (jobRow.sv_drafting === 'LM') people.push('LM');
+  if (!people.length) return;
+
+  for (var i = 0; i < people.length; i++) {
+    var person = people[i];
+    var { data: existing, error: checkErr } = await sb.from('engineer_payout').select('id')
+      .eq('job_no', jobRow.job_no).eq('revision', jobRow.revision || '').eq('person', person);
+    if (checkErr) { toast('Payout check failed for ' + person + ': ' + checkErr.message, 'err'); continue; }
+    if (existing && existing.length) continue; // already has a payout row for this job — don't duplicate
+
+    var { error: insErr } = await sb.from('engineer_payout').insert({
+      person: person,
+      job_no: jobRow.job_no,
+      revision: jobRow.revision,
+      client_name: jobRow.client_name,
+      job_type: jobRow.job_type,
+      sv_draft: jobRow.sv_drafting,
+      note: null,
+      fee: null,
+      rate: null,
+      conv: null,
+      paid: 'Nope'
+    });
+    if (insErr) { toast('Failed to create ' + person + ' payout row: ' + insErr.message, 'err'); continue; }
+    toast(person + ' payout row created', 'ok');
+  }
 }
 
 // ════════════════════════════════════════════════
