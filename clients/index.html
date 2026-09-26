@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-clients">
+      <div class="ph"><h1 class="ph-title"><span>Clients</span></h1><span class="ph-sub" id="clients-sub">—</span><div class="ph-right"><button class="btn btn-primary" id="btn-add-client">+ Add Client</button></div></div>
+      <div class="clients-grid" id="clients-grid"></div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="modal-bg" id="modal-client">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="cm-title">Add Client</span><button class="modal-close" id="cm-close">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Client ID *</label><input type="text" id="cm-id"></div>
+        <div class="field"><label>Code</label><input type="text" id="cm-code"></div>
+        <div class="field span2"><label>Full Name *</label><input type="text" id="cm-name"></div>
+        <div class="field span2"><label>Address</label><input type="text" id="cm-address"></div>
+        <div class="field"><label>Email To *</label><input type="email" id="cm-emailto"></div>
+        <div class="field"><label>Email CC</label><input type="email" id="cm-emailcc"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="cm-cancel">Cancel</button><button class="btn btn-primary" id="cm-save">Save Client</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="clients.js"></script>
+</body>
+</html>

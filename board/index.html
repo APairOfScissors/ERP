@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Board — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-board">
+      <div class="ph">
+        <div><h1 class="ph-title">Job <span>Board</span></h1><span class="ph-sub" id="board-sub">Loading…</span></div>
+        <div class="ph-right">
+          <div class="view-toggle">
+            <button class="vt-btn active" id="vt-kanban">Kanban</button>
+            <button class="vt-btn" id="vt-table">Table</button>
+          </div>
+          <a class="btn btn-primary" href="../new-job/">+ New Job</a>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-lbl">Active Jobs</div><div class="stat-val" id="st-total">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">In Progress</div><div class="stat-val blue" id="st-inprog">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Overdue</div><div class="stat-val red" id="st-overdue">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">At Invoicing</div><div class="stat-val green" id="st-invoicing">—</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap"><span class="search-ico">&#128269;</span><input type="text" id="board-search" placeholder="Search job, client, address…"></div>
+        <button class="filter-chip active" id="sf-all">All</button>
+        <button class="filter-chip" id="sf-booked">Booked</button>
+        <button class="filter-chip" id="sf-inprog">In Progress</button>
+        <button class="filter-chip" id="sf-invoicing">Invoicing</button>
+        <button class="filter-chip" id="sf-completed">Completed</button>
+        <div class="ml-auto"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-refresh-board">&#x21BA; Refresh</button>
+      </div>
+      <div id="view-kanban">
+        <div class="kanban">
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--booked-txt)">Booked</span><span class="stage-bar booked"></span><span class="kanban-count" id="kc-booked">0</span></div><div class="kanban-body" id="kb-booked"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--inprog-txt)">In Progress</span><span class="stage-bar inprog"></span><span class="kanban-count" id="kc-inprog">0</span></div><div class="kanban-body" id="kb-inprog"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--invoicing-txt)">Invoicing</span><span class="stage-bar invoicing"></span><span class="kanban-count" id="kc-invoicing">0</span></div><div class="kanban-body" id="kb-invoicing"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--complete-txt)">Completed</span><span class="stage-bar complete"></span><span class="kanban-count" id="kc-complete">0</span></div><div class="kanban-body" id="kb-complete"></div></div>
+        </div>
+      </div>
+      <div id="view-table" style="display:none">
+        <div class="table-wrap"><table><thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>Address</th><th>Job Type</th><th>Team</th><th>Progress</th><th>Status</th><th>Due</th></tr></thead><tbody id="table-body"></tbody></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="board.js"></script>
+</body>
+</html>

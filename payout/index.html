@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payout — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-payout">
+      <div class="ph"><h1 class="ph-title">Engineer <span>Payout</span></h1><span class="ph-sub">CN &amp; LM earnings</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-payout">&#x21BA; Refresh</button></div></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-lbl">CN Unpaid (A$)</div><div class="stat-val blue" id="cn-unpaid-aud">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">CN Unpaid (Rp)</div><div class="stat-val" id="cn-unpaid-rp">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">LM Unpaid (Rp)</div><div class="stat-val blue" id="lm-unpaid-rp">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">LM Total Jobs</div><div class="stat-val" id="lm-total-jobs">—</div></div>
+      </div>
+      <div class="payout-grid">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.1em">CN</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rate:</span>
+              <input type="number" id="cn-rate" placeholder="e.g. 16200" style="width:100px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:12px;outline:none">
+              <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
+            </div>
+          </div>
+          <div class="table-wrap" style="overflow-x:auto">
+            <table style="min-width:520px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>SV</th><th>Note</th><th style="text-align:right">A$</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
+            <tbody id="cn-tbody"></tbody>
+            <tfoot><tr style="background:var(--surface2)">
+              <td colspan="5" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">0.00</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">0</td>
+              <td></td>
+            </tr></tfoot></table>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom:10px;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent-txt);letter-spacing:0.1em">LM</div>
+          <div class="table-wrap" style="overflow-x:auto">
+            <table style="min-width:360px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>Note</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
+            <tbody id="lm-tbody"></tbody>
+            <tfoot><tr style="background:var(--surface2)">
+              <td colspan="4" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">0</td>
+              <td></td>
+            </tr></tfoot></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="payout.js"></script>
+</body>
+</html>

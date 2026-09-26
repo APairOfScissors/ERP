@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Job — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-newjob">
+      <div class="ph"><h1 class="ph-title">New <span>Job</span></h1><span class="ph-sub">Book a new job</span></div>
+      <div style="max-width:620px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:28px">
+        <div class="form-grid">
+          <div class="form-section">Job Details</div>
+          <div class="field"><label>Job No *</label><input type="text" id="nj-jobno" placeholder="e.g. ER442"></div>
+          <div class="field"><label>Revision *</label><input type="text" id="nj-rev" placeholder="e.g. 01, A"></div>
+          <div class="field span2"><label>Client *</label><select id="nj-client"><option value="">— Select client —</option></select></div>
+          <div class="field span2"><label>Address / Site *</label><input type="text" id="nj-address" placeholder="e.g. 27 HILLOCK AVE EAST ALBURY"></div>
+          <div class="field span2"><label>Job Type *</label><input type="text" id="nj-jobtype" placeholder="e.g. Forensic Floor Level Drafting"></div>
+          <div class="field"><label>Booking Date</label><input type="date" id="nj-bookdate"></div>
+          <div class="field"><label>Due Date</label><input type="date" id="nj-duedate"></div>
+          <div class="field"><label>Internal Submission Date</label><input type="date" id="nj-intdate"></div>
+          <div class="field"><label>Job Status</label><select id="nj-jobstatus"><option value="">— Select —</option><option>Preliminary Issue</option><option>For Construction</option><option>Issued For Report</option><option>Pre Engineering</option></select></div>
+          <div class="form-section">Assignments</div>
+          <div class="field"><label>Engineer (E)</label><select id="nj-eng"><option value="">— None —</option><option>CN</option><option>SL</option></select></div>
+          <div class="field"><label>Drafter (D)</label><select id="nj-drafter"><option value="">— None —</option><option>CN</option><option>SL</option></select></div>
+          <div class="field"><label>SV Drafting</label><select id="nj-sv"><option value="">— None —</option><option>LM</option></select></div>
+          <div class="field"><label>Checker</label><select id="nj-checker"><option value="">— None —</option><option>CN</option><option>SL</option><option>LM</option></select></div>
+        </div>
+        <hr class="div">
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <a class="btn btn-ghost" href="../board/">Cancel</a>
+          <button class="btn btn-primary" id="nj-submit">Book Job</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="new-job.js"></script>
+</body>
+</html>

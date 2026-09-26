@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoicing — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-invoicing">
+      <div class="ph"><h1 class="ph-title"><span>Invoicing</span></h1><span class="ph-sub">Jobs at invoicing stage</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-inv">&#x21BA; Refresh</button></div></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-lbl">Pending</div><div class="stat-val" id="si-pending">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Ready</div><div class="stat-val blue" id="si-ready">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Sent</div><div class="stat-val" id="si-sent">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Outstanding</div><div class="stat-val green" id="si-outstanding">—</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap"><span class="search-ico">&#128269;</span><input type="text" id="inv-search" placeholder="Search job, client…"></div>
+        <button class="filter-chip active" id="if-all">All</button>
+        <button class="filter-chip" id="if-unpaid">Unpaid</button>
+        <button class="filter-chip" id="if-invoiced">Invoiced</button>
+      </div>
+      <div id="inv-container"><div class="empty"><span class="empty-ico">&#8987;</span><p class="empty-title">Loading…</p></div></div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- Hidden render target for invoice PDF generation (captured via html2canvas, never shown) -->
+<div id="invoice-render" style="position:fixed;left:-9999px;top:0;background:#fff;pointer-events:none"></div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/invoice.js"></script>
+<script src="invoicing.js"></script>
+</body>
+</html>
