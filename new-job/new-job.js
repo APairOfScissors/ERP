@@ -1,9 +1,12 @@
+var clients = [];
+
 async function insertJob(data) {
   var { error } = await sb.from('jobs').insert(data);
   if (error) throw error;
 }
 
-function initNewJob(clients) {
+function initNewJob(list) {
+  clients = list;
   document.getElementById('nj-bookdate').value = new Date().toISOString().slice(0,10);
   var sel = document.getElementById('nj-client');
   sel.innerHTML = '<option value="">— Select client —</option>';
@@ -29,8 +32,11 @@ function submitNewJob() {
   var btn = document.getElementById('nj-submit');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Booking…';
 
+  var bookDate = document.getElementById('nj-bookdate').value || new Date().toISOString().slice(0,10);
+  var clientObj = clients.find(function(c){ return c.name === client; });
+
   insertJob({
-    booking_date:           document.getElementById('nj-bookdate').value || null,
+    booking_date:           bookDate,
     job_no:                 jobno,
     revision:               rev,
     client_name:            client,
@@ -49,6 +55,10 @@ function submitNewJob() {
     toast('Job ' + jobno + ' booked!', 'ok');
     ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('nj-client').value = '';
+
+    // Booking is confirmed immediately — folder creation runs after, in the background,
+    // and just toasts its own success/failure without blocking or reversing the booking.
+    createOneDriveFoldersInBackground(clientObj, jobno, rev, address, bookDate);
   }).catch(function(err) {
     btn.disabled = false; btn.innerHTML = 'Book Job';
     toast('Error: ' + err.message, 'err');

@@ -1,44 +1,8 @@
 // ════════════════════════════════════════════════
-//  MSAL / MICROSOFT GRAPH CONFIG
-//  Only loaded on the Invoicing page — this is the one place that needs
-//  MSAL + html2canvas + jsPDF, so no other page pays for that weight.
+//  INVOICE PDF + EMAIL (Graph auth itself lives in shared/msal.js, loaded
+//  alongside this file — this covers only the invoice-specific pieces:
+//  the PDF template, PDF rendering, and the sendMail call.)
 // ════════════════════════════════════════════════
-var msalConfig = {
-  auth: {
-    clientId: 'bd5baea5-3664-4073-a977-8443d1067a4e',
-    authority: 'https://login.microsoftonline.com/1f775747-bcd3-450a-ad8b-9aee8a428b5f',
-    redirectUri: 'https://apairofscissors.github.io/ERP/'
-  },
-  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
-};
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-var msalInitialized = null; // promise, set on first use
-var GRAPH_SCOPES = ['Mail.Send'];
-
-async function ensureMsalInit() {
-  if (!msalInitialized) msalInitialized = msalInstance.initialize();
-  await msalInitialized;
-}
-
-// Acquires a Mail.Send access token: silent refresh first, popup sign-in as fallback.
-// Must be called directly from a user-gesture handler (e.g. a click) so the popup isn't blocked.
-async function getGraphToken() {
-  await ensureMsalInit();
-  var accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    try {
-      var silent = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: accounts[0] });
-      return silent.accessToken;
-    } catch (e) {
-      // Falls through to interactive popup below (e.g. InteractionRequiredAuthError)
-    }
-  }
-  var result = accounts.length > 0
-    ? await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES, account: accounts[0] })
-    : await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
-  return result.accessToken;
-}
-
 function buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate) {
   var fmtDate = function(d){ return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); };
   var rows = items.map(function(it) {
