@@ -6,8 +6,11 @@
   --accent:#00bbfa;--accent-dim:#001f3a;--accent-txt:#79d7fd;
   --booked-bg:#001f3a;--booked-txt:#ffc54a;--booked-bdr:#3a3010;
   --inprog-bg:#001a40;--inprog-txt:#00bbfa;--inprog-bdr:#003878;
+  --intcheck-bg:#001f3d;--intcheck-txt:#4fd8c4;--intcheck-bdr:#0a4a42;
+  --extcheck-bg:#1f0a40;--extcheck-txt:#b98cff;--extcheck-bdr:#3a1a70;
   --invoicing-bg:#001830;--invoicing-txt:#79d7fd;--invoicing-bdr:#003060;
   --complete-bg:#00183e;--complete-txt:#3a6a90;--complete-bdr:#002060;
+  --cancelled-bg:#2a0a0a;--cancelled-txt:#ff6b6b;--cancelled-bdr:#5a1a1a;
   --sidebar-bg:#00101f;--sidebar-bdr:#001736;
   --btn-primary-bg:#00bbfa;--btn-primary-txt:#001736;
   --nav-active-bg:rgba(0,187,250,0.1);--nav-active-bdr:#00bbfa;
@@ -21,8 +24,11 @@
   --accent:#D4A000;--accent-dim:#FFF8D0;--accent-txt:#8A6800;
   --booked-bg:#FFF8D0;--booked-txt:#7A6000;--booked-bdr:#E8D070;
   --inprog-bg:#FFF0C8;--inprog-txt:#8A5800;--inprog-bdr:#E8C060;
+  --intcheck-bg:#E0F5F0;--intcheck-txt:#0A6B5C;--intcheck-bdr:#8CD9C8;
+  --extcheck-bg:#F0E8FF;--extcheck-txt:#5A2E9C;--extcheck-bdr:#C8A8F0;
   --invoicing-bg:#E8F5E0;--invoicing-txt:#2A6020;--invoicing-bdr:#A0D080;
   --complete-bg:#F0EEE8;--complete-txt:#5A5040;--complete-bdr:#C8C0A0;
+  --cancelled-bg:#FFE8E8;--cancelled-txt:#A02020;--cancelled-bdr:#F0A0A0;
   --sidebar-bg:#F5C800;--sidebar-bdr:#E0B400;
   --btn-primary-bg:#8A4800;--btn-primary-txt:#fff;
   --nav-active-bg:rgba(0,0,0,0.08);--nav-active-bdr:#8A4800;
@@ -157,8 +163,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stage-bar{height:3px;border-radius:2px;flex:1;opacity:0.6}
 .stage-bar.booked{background:var(--booked-txt)}
 .stage-bar.inprog{background:var(--inprog-txt)}
+.stage-bar.intcheck{background:var(--intcheck-txt)}
+.stage-bar.extcheck{background:var(--extcheck-txt)}
 .stage-bar.invoicing{background:var(--invoicing-txt)}
 .stage-bar.complete{background:var(--complete-txt)}
+.stage-bar.cancelled{background:var(--cancelled-txt)}
 .kanban-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);background:var(--bg-mid);padding:1px 6px;border-radius:10px;border:1px solid var(--rule)}
 .kanban-body{padding:10px;display:flex;flex-direction:column;gap:7px;min-height:80px}
 .jcard{display:block;text-decoration:none;color:inherit;background:var(--bg-mid);border:1px solid var(--rule);border-radius:7px;padding:11px 12px;cursor:pointer;transition:border-color 0.13s,transform 0.13s}
@@ -176,8 +185,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stage-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;font-family:'DM Mono',monospace}
 .pill-booked{background:var(--booked-bg);color:var(--booked-txt);border:1px solid var(--booked-bdr)}
 .pill-inprog{background:var(--inprog-bg);color:var(--inprog-txt);border:1px solid var(--inprog-bdr)}
+.pill-intcheck{background:var(--intcheck-bg);color:var(--intcheck-txt);border:1px solid var(--intcheck-bdr)}
+.pill-extcheck{background:var(--extcheck-bg);color:var(--extcheck-txt);border:1px solid var(--extcheck-bdr)}
 .pill-invoicing{background:var(--invoicing-bg);color:var(--invoicing-txt);border:1px solid var(--invoicing-bdr)}
 .pill-complete{background:var(--complete-bg);color:var(--complete-txt);border:1px solid var(--complete-bdr)}
+.pill-cancelled{background:var(--cancelled-bg);color:var(--cancelled-txt);border:1px solid var(--cancelled-bdr)}
 .pill-unpaid{background:var(--booked-bg);color:var(--booked-txt);border:1px solid var(--booked-bdr)}
 .pill-invoiced{background:var(--inprog-bg);color:var(--inprog-txt);border:1px solid var(--inprog-bdr)}
 .pill-paid{background:var(--invoicing-bg);color:var(--invoicing-txt);border:1px solid var(--invoicing-bdr)}

@@ -34,7 +34,7 @@ function renderJob(job) {
     '</div></div>' +
     '<div class="detail-section"><div class="detail-section-title">Progress &amp; Status</div><div class="form-grid">' +
     '<div class="field"><label>Job Progress</label><select id="ed-progress">' +
-      ['Booked','In Progress','Ext Checking','Invoicing','Completed'].map(function(s){ return '<option'+(job.job_progress===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+      JOB_STAGES.map(function(s){ return '<option'+(job.job_progress===s?' selected':'')+'>'+s+'</option>'; }).join('') +
     '</select></div>' +
     '<div class="field"><label>Job Status</label><select id="ed-jobstatus"><option value="">— None —</option>' +
       ['Preliminary Issue','For Construction','Issued For Report','Pre Engineering','ON HOLD'].map(function(s){ return '<option'+(job.job_status===s?' selected':'')+'>'+s+'</option>'; }).join('') +

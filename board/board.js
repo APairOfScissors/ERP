@@ -30,7 +30,7 @@ function loadBoard() {
 
 function updateBoardStats() {
   var today  = new Date(); today.setHours(0,0,0,0);
-  var active = jobs.filter(function(j){ return j.job_progress !== 'Completed'; });
+  var active = jobs.filter(function(j){ return j.job_progress !== 'Completed' && j.job_progress !== 'Cancelled'; });
   var overdue= active.filter(function(j){ return j.due_date && new Date(j.due_date) < today; });
   document.getElementById('st-total').textContent     = active.length;
   document.getElementById('st-inprog').textContent    = jobs.filter(function(j){ return j.job_progress === 'In Progress'; }).length;
@@ -67,8 +67,8 @@ function renderBoard() {
 }
 
 function renderKanban(filtered) {
-  var stages = ['Booked','In Progress','Invoicing','Completed'];
-  var ids    = ['booked','inprog','invoicing','complete'];
+  var stages = ['Booked','In Progress','Int Checking','Ext Checking','Invoicing','Completed','Cancelled'];
+  var ids    = ['booked','inprog','intcheck','extcheck','invoicing','complete','cancelled'];
   stages.forEach(function(stage, si) {
     var col = filtered.filter(function(j){ return j.job_progress === stage; });
     document.getElementById('kc-' + ids[si]).textContent = col.length;
@@ -131,8 +131,11 @@ function renderTable(filtered) {
   document.getElementById('sf-all').addEventListener('click',       function(){ setStageFilter('all',this); });
   document.getElementById('sf-booked').addEventListener('click',    function(){ setStageFilter('Booked',this); });
   document.getElementById('sf-inprog').addEventListener('click',    function(){ setStageFilter('In Progress',this); });
+  document.getElementById('sf-intcheck').addEventListener('click',  function(){ setStageFilter('Int Checking',this); });
+  document.getElementById('sf-extcheck').addEventListener('click',  function(){ setStageFilter('Ext Checking',this); });
   document.getElementById('sf-invoicing').addEventListener('click', function(){ setStageFilter('Invoicing',this); });
   document.getElementById('sf-completed').addEventListener('click', function(){ setStageFilter('Completed',this); });
+  document.getElementById('sf-cancelled').addEventListener('click', function(){ setStageFilter('Cancelled',this); });
   document.getElementById('btn-refresh-board').addEventListener('click', loadBoard);
   document.getElementById('board-search').addEventListener('input', renderBoard);
 

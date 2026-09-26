@@ -46,8 +46,11 @@
         <button class="filter-chip active" id="sf-all">All</button>
         <button class="filter-chip" id="sf-booked">Booked</button>
         <button class="filter-chip" id="sf-inprog">In Progress</button>
+        <button class="filter-chip" id="sf-intcheck">Int Checking</button>
+        <button class="filter-chip" id="sf-extcheck">Ext Checking</button>
         <button class="filter-chip" id="sf-invoicing">Invoicing</button>
         <button class="filter-chip" id="sf-completed">Completed</button>
+        <button class="filter-chip" id="sf-cancelled">Cancelled</button>
         <div class="ml-auto"></div>
         <button class="btn btn-ghost btn-sm" id="btn-refresh-board">&#x21BA; Refresh</button>
       </div>
@@ -55,8 +58,11 @@
         <div class="kanban">
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--booked-txt)">Booked</span><span class="stage-bar booked"></span><span class="kanban-count" id="kc-booked">0</span></div><div class="kanban-body" id="kb-booked"></div></div>
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--inprog-txt)">In Progress</span><span class="stage-bar inprog"></span><span class="kanban-count" id="kc-inprog">0</span></div><div class="kanban-body" id="kb-inprog"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--intcheck-txt)">Int Checking</span><span class="stage-bar intcheck"></span><span class="kanban-count" id="kc-intcheck">0</span></div><div class="kanban-body" id="kb-intcheck"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--extcheck-txt)">Ext Checking</span><span class="stage-bar extcheck"></span><span class="kanban-count" id="kc-extcheck">0</span></div><div class="kanban-body" id="kb-extcheck"></div></div>
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--invoicing-txt)">Invoicing</span><span class="stage-bar invoicing"></span><span class="kanban-count" id="kc-invoicing">0</span></div><div class="kanban-body" id="kb-invoicing"></div></div>
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--complete-txt)">Completed</span><span class="stage-bar complete"></span><span class="kanban-count" id="kc-complete">0</span></div><div class="kanban-body" id="kb-complete"></div></div>
+          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--cancelled-txt)">Cancelled</span><span class="stage-bar cancelled"></span><span class="kanban-count" id="kc-cancelled">0</span></div><div class="kanban-body" id="kb-cancelled"></div></div>
         </div>
       </div>
       <div id="view-table" style="display:none">
