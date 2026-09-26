@@ -75,7 +75,7 @@ async function getNextInvoiceNo(clientCode) {
 function resolveInvoiceClient(invJob) {
   var jobRecord = jobsLite.find(function(j){ return j.job_no === invJob.job_no && (j.revision||'') === (invJob.revision||''); });
   var clientName = jobRecord ? jobRecord.client_name : null;
-  var client = clients.find(function(c){ return c.name === clientName || c.client_id === invJob.client_id; });
+  var client = findClientByName(clients, clientName) || clients.find(function(c){ return c.client_id === invJob.client_id; });
   return { jobRecord: jobRecord, client: client };
 }
 

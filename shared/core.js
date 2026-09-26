@@ -72,3 +72,16 @@ function di(label, val, full){ return '<div class="detail-item'+(full?' style="g
 function selF(id, label, opts, val){ return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; }
 function dtF(id, label, val){ return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+(val||'')+'"></div>'; }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// clients.name stores full legal names ("Arax Consulting Pty Ltd"), but jobs.client_name
+// is free text and often uses a shorter form ("Arax Consulting") — an exact-string match
+// only works for clients whose short/long forms happen to coincide (Dexcon). Strip the
+// corporate suffix and all non-alphanumerics before comparing so both forms match.
+function normalizeClientName(n) {
+  return String(n||'').toLowerCase().replace(/\bpty\.?\s*ltd\.?\b/g,'').replace(/[^a-z0-9]/g,'');
+}
+function findClientByName(clientsList, name) {
+  var target = normalizeClientName(name);
+  if (!target) return null;
+  return (clientsList || []).find(function(c){ return normalizeClientName(c.name) === target; }) || null;
+}

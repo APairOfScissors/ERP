@@ -108,7 +108,7 @@ async function openOneDriveFolder() {
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Opening…';
   try {
     var clientsList = await loadClients();
-    var client = clientsList.find(function(c){ return c.name === currentJob.client_name; });
+    var client = findClientByName(clientsList, currentJob.client_name);
     if (!client || !client.code) throw new Error('No client code found for "' + currentJob.client_name + '"');
     var token = await getGraphToken();
     var path = await resolveJobFolderPath(token, client.code, currentJob.job_no, currentJob.address);
