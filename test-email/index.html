@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Email Test — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/lib/msal-browser.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div id="test-panel" style="display:none;max-width:480px;margin:80px auto;padding:32px;background:var(--surface);border:1px solid var(--rule);border-radius:12px">
+  <h1 style="font-size:18px;margin-bottom:6px">Graph Email Test</h1>
+  <p style="color:var(--text-soft);font-size:12.5px;margin-bottom:20px;line-height:1.6">
+    Sends a plain test email to whichever Microsoft account you sign in with, using the exact same
+    Graph <code>sendMail</code> call the Invoicing page uses — isolates whether email sending itself
+    works, without generating a PDF or touching any real job/client data.
+  </p>
+  <button class="btn btn-primary" id="send-test" style="width:100%;justify-content:center">Send test email to myself</button>
+  <div id="result" style="margin-top:14px;font-size:12px;line-height:1.5"></div>
+  <p style="margin-top:18px"><a href="../board/" style="color:var(--text-soft);font-size:11.5px">&larr; Back to Board</a></p>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/msal.js"></script>
+<script>
+(async function() {
+  var user = await requireAuth();
+  if (!user) return;
+
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('test-panel').style.display = 'block';
+
+  document.getElementById('send-test').addEventListener('click', async function() {
+    var btn = this;
+    var resultEl = document.getElementById('result');
+    var origLabel = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…';
+    resultEl.textContent = '';
+    try {
+      var token = await getGraphToken();
+      var accounts = msalInstance.getAllAccounts();
+      var myEmail = accounts[0] ? accounts[0].username : null;
+      if (!myEmail) throw new Error('Could not determine the signed-in account\'s email');
+
+      var res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            subject: 'LDW ERP — Graph email test',
+            body: {
+              contentType: 'HTML',
+              content: '<p>This is a test email sent from the LDW Engineering ERP via Microsoft Graph.</p><p>If you\'re reading this, <code>sendMail</code> works.</p><p style="color:#888;font-size:12px">Sent ' + new Date().toLocaleString() + '</p>'
+            },
+            toRecipients: [{ emailAddress: { address: myEmail } }]
+          },
+          saveToSentItems: true
+        })
+      });
+      if (!res.ok) {
+        var errText = await res.text();
+        throw new Error('Graph sendMail failed (' + res.status + '): ' + errText.slice(0,300));
+      }
+      resultEl.style.color = 'var(--invoicing-txt)';
+      resultEl.textContent = 'Sent to ' + myEmail + ' — check your inbox (and spam, just in case).';
+      toast('Test email sent to ' + myEmail, 'ok');
+    } catch (err) {
+      resultEl.style.color = 'var(--overdue-txt)';
+      resultEl.textContent = 'Error: ' + err.message;
+      toast('Send failed: ' + err.message, 'err');
+    } finally {
+      btn.disabled = false; btn.innerHTML = origLabel;
+    }
+  });
+}());
+</script>
+</body>
+</html>
