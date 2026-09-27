@@ -25,7 +25,11 @@
     Graph <code>sendMail</code> call the Invoicing page uses — isolates whether email sending itself
     works, without generating a PDF or touching any real job/client data.
   </p>
-  <button class="btn btn-primary" id="send-test" style="width:100%;justify-content:center">Send test email to myself</button>
+  <div class="field" style="margin-bottom:14px">
+    <label>Send to</label>
+    <input type="email" id="test-recipient" placeholder="you@example.com">
+  </div>
+  <button class="btn btn-primary" id="send-test" style="width:100%;justify-content:center">Send test email</button>
   <div id="result" style="margin-top:14px;font-size:12px;line-height:1.5"></div>
   <p style="margin-top:18px"><a href="../board/" style="color:var(--text-soft);font-size:11.5px">&larr; Back to Board</a></p>
 </div>
@@ -42,6 +46,14 @@
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('test-panel').style.display = 'block';
 
+  // Prefill with the cached Graph account's email as a convenient default, if
+  // one's already signed in — doesn't trigger a popup, and stays fully editable.
+  try {
+    await ensureMsalInit();
+    var cached = msalInstance.getAllAccounts()[0];
+    if (cached) document.getElementById('test-recipient').value = cached.username;
+  } catch (e) {}
+
   document.getElementById('send-test').addEventListener('click', async function() {
     var btn = this;
     var resultEl = document.getElementById('result');
@@ -49,10 +61,10 @@
     btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…';
     resultEl.textContent = '';
     try {
+      var recipient = document.getElementById('test-recipient').value.trim();
+      if (!recipient) throw new Error('Enter an email address to send to');
+
       var token = await getGraphToken();
-      var accounts = msalInstance.getAllAccounts();
-      var myEmail = accounts[0] ? accounts[0].username : null;
-      if (!myEmail) throw new Error('Could not determine the signed-in account\'s email');
 
       var res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
         method: 'POST',
@@ -64,7 +76,7 @@
               contentType: 'HTML',
               content: '<p>This is a test email sent from the LDW Engineering ERP via Microsoft Graph.</p><p>If you\'re reading this, <code>sendMail</code> works.</p><p style="color:#888;font-size:12px">Sent ' + new Date().toLocaleString() + '</p>'
             },
-            toRecipients: [{ emailAddress: { address: myEmail } }]
+            toRecipients: [{ emailAddress: { address: recipient } }]
           },
           saveToSentItems: true
         })
@@ -74,8 +86,8 @@
         throw new Error('Graph sendMail failed (' + res.status + '): ' + errText.slice(0,300));
       }
       resultEl.style.color = 'var(--invoicing-txt)';
-      resultEl.textContent = 'Sent to ' + myEmail + ' — check your inbox (and spam, just in case).';
-      toast('Test email sent to ' + myEmail, 'ok');
+      resultEl.textContent = 'Sent to ' + recipient + ' — check the inbox (and spam, just in case).';
+      toast('Test email sent to ' + recipient, 'ok');
     } catch (err) {
       resultEl.style.color = 'var(--overdue-txt)';
       resultEl.textContent = 'Error: ' + err.message;
