@@ -10,7 +10,11 @@ var NAV_ITEMS = [
   { key: 'clients',  label: 'Clients',    href: 'clients/',  section: null }
 ];
 
-function initNav(activeKey) {
+// Pass { restricted: true } only from /my-jobs/ — a CN/LM account only ever
+// gets this one nav item instead of the full list, matching what requireAuth()
+// already bounces them to everywhere else.
+function initNav(activeKey, opts) {
+  var restricted = !!(opts && opts.restricted);
   var root = appRoot();
 
   document.getElementById('mobile-topbar').innerHTML =
@@ -19,15 +23,19 @@ function initNav(activeKey) {
 
   var currentTheme = document.documentElement.getAttribute('data-theme') === 'p4' ? 'p4' : 'p3';
   var navHtml = '<div class="brand"><span class="brand-eye">LDW Engineering</span><span class="brand-name">Lionghardy<br><span class="brand-accent">DesignWorks</span></span></div><div class="nav">';
-  var lastSection = null;
-  NAV_ITEMS.forEach(function(item) {
-    if (item.section && item.section !== lastSection) {
-      navHtml += '<div class="nav-section">' + esc(item.section) + '</div>';
-      lastSection = item.section;
-    }
-    navHtml += '<a class="nav-item' + (item.key === activeKey ? ' active' : '') + '" href="' + root + item.href + '">' +
-      esc(item.label) + (item.badge ? ' <span class="nav-badge" id="' + item.badge + '">—</span>' : '') + '</a>';
-  });
+  if (restricted) {
+    navHtml += '<a class="nav-item active" href="' + root + 'my-jobs/">My Jobs</a>';
+  } else {
+    var lastSection = null;
+    NAV_ITEMS.forEach(function(item) {
+      if (item.section && item.section !== lastSection) {
+        navHtml += '<div class="nav-section">' + esc(item.section) + '</div>';
+        lastSection = item.section;
+      }
+      navHtml += '<a class="nav-item' + (item.key === activeKey ? ' active' : '') + '" href="' + root + item.href + '">' +
+        esc(item.label) + (item.badge ? ' <span class="nav-badge" id="' + item.badge + '">—</span>' : '') + '</a>';
+    });
+  }
   navHtml +=
     '</div>' +
     '<div class="theme-toggle" id="theme-btn"><span id="theme-emoji" style="font-size:16px">' + (currentTheme === 'p3' ? '🌙' : '📺') + '</span><span id="theme-label">' + (currentTheme === 'p3' ? 'P3 / Dark' : 'P4 / Light') + '</span></div>' +

@@ -15,13 +15,25 @@ function appRoot() { return window.APP_ROOT || './'; }
 // ════════════════════════════════════════════════
 //  AUTH GUARD
 //  Every page but the root login calls this first. No session -> bounce to login.
+//  An account with a person_code in its metadata (CN/LM — restricted to only
+//  their own assigned jobs, enforced for real via RLS, see sql/restrict-assigned-users.sql)
+//  gets bounced to /my-jobs/ from every other page automatically — pass
+//  { allowRestricted: true } only from my-jobs itself to opt out of that bounce.
 // ════════════════════════════════════════════════
-async function requireAuth() {
+function personCodeOf(user) {
+  return (user && user.user_metadata && user.user_metadata.person_code) || null;
+}
+
+async function requireAuth(opts) {
   var { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace(appRoot()); return null; }
   sb.auth.onAuthStateChange(function(event) {
     if (event === 'SIGNED_OUT') location.replace(appRoot());
   });
+  if (personCodeOf(session.user) && !(opts && opts.allowRestricted)) {
+    location.replace(appRoot() + 'my-jobs/');
+    return null;
+  }
   return session.user;
 }
 
