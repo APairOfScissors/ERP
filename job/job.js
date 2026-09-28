@@ -44,7 +44,7 @@ function renderJob(job) {
     selF('ed-eng','Engineer (E)',['','CN','SL'],job.eng||'') +
     selF('ed-drafter','Drafter (D)',['','CN','SL'],job.drafter||'') +
     selF('ed-sv','SV Drafting',ASSIGNEE_CODES,job.sv_drafting||'') +
-    selF('ed-checker','Checker',ASSIGNEE_CODES,job.checker||'') +
+    '<div class="field"><label>Checker</label><input type="text" id="ed-checker" value="'+esc(job.checker||'')+'" placeholder="Client-side reviewer name"></div>' +
     '</div></div>' +
     '<div class="detail-section"><div class="detail-section-title">Dates</div><div class="form-grid">' +
     dtF('ed-intdate','Internal Due Date', job.internal_submission_date||'') +
