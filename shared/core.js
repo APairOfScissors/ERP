@@ -79,6 +79,9 @@ function toast(msg, type) {
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function shortClient(n){ return (n||'').replace(' Pty Ltd','').replace(' Consulting Engineers','').replace(' Engineering Group',' Group'); }
 var JOB_STAGES = ['Booked','In Progress','Int Checking','Ext Checking','Invoicing','Completed','Cancelled'];
+// Full assignee roster (staff CN/SL/LM plus external checkers AR/AS/MV) — shared by
+// SV Drafting and Checker so their option lists can't drift apart from each other again.
+var ASSIGNEE_CODES = ['','CN','SL','LM','AR','AS','MV'];
 function stagePill(p){ var m={'Booked':'pill-booked','In Progress':'pill-inprog','Int Checking':'pill-intcheck','Ext Checking':'pill-extcheck','Invoicing':'pill-invoicing','Completed':'pill-complete','Cancelled':'pill-cancelled'}; return '<span class="stage-pill '+(m[p]||'pill-booked')+'">'+esc(p)+'</span>'; }
 function di(label, val, full){ return '<div class="detail-item'+(full?' style="grid-column:span 2"':'')+'"><label>'+label+'</label><span>'+val+'</span></div>'; }
 function selF(id, label, opts, val){ return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; }
