@@ -13,8 +13,8 @@ async function loadPayoutData() {
   lmRows = (data || []).filter(function(r){ return r.person === 'LM'; });
 }
 
-async function updatePayoutPaid(id, paid) {
-  var { error } = await sb.from('engineer_payout').update({ paid }).eq('id', id);
+async function updatePayoutRow(id, patch) {
+  var { error } = await sb.from('engineer_payout').update(patch).eq('id', id);
   if (error) throw error;
 }
 
@@ -83,15 +83,46 @@ function renderLM() {
   document.getElementById('lm-total-jobs').textContent= lmRows.length;
 }
 
-function togglePayoutPaid(person, id) {
+// ════════════════════════════════════════════════
+//  PAYOUT AMOUNT MODAL
+//  Clicking a row's Paid/Nope button opens this instead of toggling
+//  directly — Steven fills in (or corrects) the actual amount right
+//  there, since the app has no other UI for setting fee/conv and it
+//  previously had to be edited straight in Supabase.
+// ════════════════════════════════════════════════
+var editingRow = null; // { person: 'cn'|'lm', row }
+
+function openPayoutAmountModal(person, id) {
   var arr = person === 'cn' ? cnRows : lmRows;
   var r   = arr.find(function(x){ return x.id === id; }); if (!r) return;
+  editingRow = { person: person, row: r };
+
+  var targetPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
+  document.getElementById('pm-title').textContent = r.job_no + ' — ' + (person === 'cn' ? 'CN' : 'LM');
+  document.getElementById('pm-save').textContent  = 'Save & Mark ' + (targetPaid === 'Paid' ? 'Paid' : 'Unpaid');
+  document.getElementById('pm-fee-field').style.display = person === 'cn' ? '' : 'none';
+  document.getElementById('pm-fee').value = r.fee != null ? r.fee : '';
+  document.getElementById('pm-rp').value  = r.conv != null ? r.conv : '';
+  document.getElementById('modal-payout-amt').classList.add('open');
+}
+
+function savePayoutAmount() {
+  if (!editingRow) return;
+  var person = editingRow.person, r = editingRow.row;
   var newPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
-  updatePayoutPaid(id, newPaid).then(function() {
-    r.paid = newPaid;
+  var patch = { paid: newPaid, conv: parseFloat(document.getElementById('pm-rp').value) || 0 };
+  if (person === 'cn') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
+
+  var btn = document.getElementById('pm-save');
+  btn.disabled = true;
+  updatePayoutRow(r.id, patch).then(function() {
+    Object.assign(r, patch);
+    closeModal('modal-payout-amt');
     toast((newPaid === 'Paid' ? 'Marked Paid' : 'Marked Unpaid'), 'ok');
     renderPayout();
-  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
+  }).catch(function(err){ toast('Error: ' + err.message, 'err'); }).finally(function(){
+    btn.disabled = false;
+  });
 }
 
 // ════════════════════════════════════════════════
@@ -111,8 +142,12 @@ function togglePayoutPaid(person, id) {
   });
   document.getElementById('page-payout').addEventListener('click', function(e){
     var btn = e.target.closest('[data-person]');
-    if (btn) togglePayoutPaid(btn.getAttribute('data-person'), parseInt(btn.getAttribute('data-id')));
+    if (btn) openPayoutAmountModal(btn.getAttribute('data-person'), parseInt(btn.getAttribute('data-id')));
   });
+  document.getElementById('pm-close').addEventListener('click',  function(){ closeModal('modal-payout-amt'); });
+  document.getElementById('pm-cancel').addEventListener('click', function(){ closeModal('modal-payout-amt'); });
+  document.getElementById('pm-save').addEventListener('click',   savePayoutAmount);
+  document.getElementById('modal-payout-amt').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('open'); });
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

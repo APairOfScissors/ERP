@@ -82,6 +82,20 @@
 </div>
 </div>
 
+<!-- PAYOUT AMOUNT MODAL -->
+<div class="modal-bg" id="modal-payout-amt">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head"><span class="modal-title" id="pm-title">Edit Payout</span><button class="modal-close" id="pm-close">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field" id="pm-fee-field"><label>Fee (A$)</label><input type="number" id="pm-fee" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Rp</label><input type="number" id="pm-rp" step="1" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="pm-cancel">Cancel</button><button class="btn btn-primary" id="pm-save">Save</button></div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script src="../shared/core.js"></script>
