@@ -52,6 +52,14 @@ function showLogin() {
 }
 
 (async function(){
+  // This page is also the MSAL popup's redirectUri. When Microsoft's login
+  // flow lands back here inside that popup, MSAL's opener-side listener
+  // needs to read the auth response straight off the URL hash — any
+  // redirect we fire here (even to another page on this same site) races
+  // it and clears the hash first, causing "hash_empty_error". So if we're
+  // in a popup at all, do nothing and let MSAL finish and close it.
+  if (window.opener) return;
+
   document.getElementById('login-btn').addEventListener('click', signIn);
   document.getElementById('login-password').addEventListener('keydown', function(e){ if (e.key === 'Enter') signIn(); });
 
