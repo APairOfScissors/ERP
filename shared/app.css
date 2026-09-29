@@ -264,13 +264,28 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 
 /* ---------- Redesigned form panels (grouped cards, replacing the flat
    form-section-divided grid) ---------- */
-.panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;margin-bottom:14px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:box-shadow 0.18s ease}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:box-shadow 0.18s ease}
 .panel:hover{box-shadow:0 6px 22px rgba(0,0,0,0.12)}
-.panel-head{display:flex;align-items:center;gap:9px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--surface2)}
+.panel-head{display:flex;align-items:center;gap:9px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--surface2);border-radius:11px 11px 0 0}
 .panel-head svg{width:15px;height:15px;color:var(--accent);flex:none}
 .panel-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-family:'DM Mono',monospace;color:var(--text);margin:0}
 .panel-head h2 small{text-transform:none;font-weight:400;letter-spacing:0;color:var(--text-soft);font-family:'Inter',sans-serif;font-size:11px}
 .panel-body{padding:18px}
+
+/* ---------- Payout page: inline rate input, native spinner suppressed so
+   the placeholder/value isn't crowded by browser spin arrows ---------- */
+.rate-input{width:118px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;-moz-appearance:textfield}
+.rate-input::-webkit-outer-spin-button,.rate-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rate-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow,transparent)}
+
+/* ---------- Payout page mobile: hide secondary columns under 640px ---------- */
+.hide-mobile{}
+@media (max-width:640px){.hide-mobile{display:none}}
+
+/* ---------- Payout page: Paid/Nope toggle button ---------- */
+.paid-toggle-btn{font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid;transition:transform 0.1s ease}
+.paid-toggle-btn:active{transform:scale(0.95)}
+@media (max-width:640px){.paid-toggle-btn{padding:7px 12px;font-size:11px}}
 
 /* ---------- Restyled date inputs: recolor the native picker icon to match
    the theme's accent instead of raw browser chrome ---------- */

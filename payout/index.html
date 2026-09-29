@@ -33,36 +33,47 @@
         <div class="stat-card"><div class="stat-lbl">LM Total Jobs</div><div class="stat-val" id="lm-total-jobs">—</div></div>
       </div>
       <div class="payout-grid">
-        <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.1em">CN</div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rate:</span>
-              <input type="number" id="cn-rate" placeholder="e.g. 16200" style="width:100px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:12px;outline:none">
-              <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
+        <div class="panel">
+          <div class="panel-head" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+              <h2>CN</h2>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">Rate:</span>
+              <input type="number" id="cn-rate" class="rate-input" placeholder="e.g. 16200">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
             </div>
           </div>
-          <div class="table-wrap" style="overflow-x:auto">
-            <table style="min-width:520px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>SV</th><th>Note</th><th style="text-align:right">A$</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
+          <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th class="hide-mobile">SV</th><th class="hide-mobile">Note</th><th style="text-align:right">A$</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
             <tbody id="cn-tbody"></tbody>
             <tfoot><tr style="background:var(--surface2)">
-              <td colspan="5" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
-              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">0.00</td>
-              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">0</td>
+              <td colspan="5" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">0.00</td>
+              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">0</td>
               <td></td>
             </tr></tfoot></table>
           </div>
+          </div>
         </div>
-        <div>
-          <div style="margin-bottom:10px;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--accent-txt);letter-spacing:0.1em">LM</div>
-          <div class="table-wrap" style="overflow-x:auto">
-            <table style="min-width:360px"><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th>Note</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
+        <div class="panel">
+          <div class="panel-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            <h2>LM</h2>
+          </div>
+          <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th class="hide-mobile">Note</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
             <tbody id="lm-tbody"></tbody>
             <tfoot><tr style="background:var(--surface2)">
-              <td colspan="4" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
-              <td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">0</td>
+              <td colspan="3" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
+              <td class="hide-mobile"></td>
+              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">0</td>
               <td></td>
             </tr></tfoot></table>
+          </div>
           </div>
         </div>
       </div>
