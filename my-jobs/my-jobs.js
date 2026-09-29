@@ -70,17 +70,12 @@ function buildStageGroup(stage, jobs, collapsed, today) {
   var wrap = document.createElement('div'); wrap.className = 'stage-group';
 
   var head = document.createElement('div'); head.className = 'stage-group-head';
-  var chevron = document.createElement('span'); chevron.className = 'chevron'; chevron.innerHTML = collapsed ? '&#9656;' : '&#9662;';
+  var chevron = document.createElement('span'); chevron.className = 'chevron'; chevron.textContent = '▾';
   var title = document.createElement('span'); title.className = 'stage-group-title'; title.textContent = stage;
   var count = document.createElement('span'); count.className = 'kanban-count'; count.textContent = jobs.length;
   head.appendChild(chevron); head.appendChild(title); head.appendChild(count);
 
   var body = document.createElement('div'); body.className = 'stage-group-body';
-  body.hidden = collapsed;
-  head.addEventListener('click', function() {
-    body.hidden = !body.hidden;
-    chevron.innerHTML = body.hidden ? '&#9656;' : '&#9662;';
-  });
 
   var tw = document.createElement('div'); tw.className = 'table-wrap';
   var table = document.createElement('table');
@@ -92,6 +87,7 @@ function buildStageGroup(stage, jobs, collapsed, today) {
   body.appendChild(tw);
 
   wrap.appendChild(head); wrap.appendChild(body);
+  makeCollapsible(head, body, !collapsed);
   return wrap;
 }
 

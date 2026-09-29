@@ -33,34 +33,52 @@ function renderJob(job) {
   document.getElementById('job-sub').textContent = shortClient(job.client_name || '') + ' — ' + (job.job_type || '');
 
   var html =
-    '<div class="detail-section"><div class="detail-section-title">Job Info</div><div class="detail-grid">' +
+    '<div class="panel"><div class="panel-head">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/></svg>' +
+      '<h2>Job Info</h2></div><div class="panel-body"><div class="detail-grid">' +
     di('Job No', '<span class="mono">'+esc(job.job_no)+'</span>') +
     di('Revision', '<span class="mono">'+esc(job.revision||'—')+'</span>') +
     di('Client', esc(job.client_name||'')) +
     di('Job Type', esc(job.job_type||'—')) +
     di('Address', esc(job.address||'—'), true) +
-    '</div></div>' +
-    '<div class="detail-section"><div class="detail-section-title">Progress &amp; Status</div><div class="form-grid">' +
+    '</div></div></div>' +
+
+    '<div class="panel"><div class="panel-head">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' +
+      '<h2>Progress &amp; Status</h2></div><div class="panel-body"><div class="form-grid">' +
     '<div class="field"><label>Job Progress</label><select id="ed-progress">' +
       JOB_STAGES.map(function(s){ return '<option'+(job.job_progress===s?' selected':'')+'>'+s+'</option>'; }).join('') +
     '</select></div>' +
     '<div class="field"><label>Job Status</label><select id="ed-jobstatus"><option value="">— None —</option>' +
       ['Preliminary Issue','For Construction','Issued For Report','Pre Engineering','ON HOLD'].map(function(s){ return '<option'+(job.job_status===s?' selected':'')+'>'+s+'</option>'; }).join('') +
     '</select></div>' +
-    '</div></div>' +
-    '<div class="detail-section"><div class="detail-section-title">Assignments</div><div class="form-grid">' +
+    '</div></div></div>' +
+
+    '<div class="panel"><div class="panel-head">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.4 6.5-6.4s6.5 2.8 6.5 6.4"/><circle cx="18" cy="8" r="2.4"/><path d="M15.8 13.8c2.6.3 4.7 2.6 4.7 5.4"/></svg>' +
+      '<h2>Assignments</h2></div><div class="panel-body"><div class="form-grid">' +
     selF('ed-eng','Engineer (E)',['','CN','SL'],job.eng||'') +
     selF('ed-drafter','Drafter (D)',['','CN','SL'],job.drafter||'') +
     selF('ed-sv','SV Drafting',ASSIGNEE_CODES,job.sv_drafting||'') +
     '<div class="field"><label>Checker</label><input type="text" id="ed-checker" value="'+esc(job.checker||'')+'" placeholder="Client-side reviewer name"></div>' +
-    '</div></div>' +
-    '<div class="detail-section"><div class="detail-section-title">Dates</div><div class="form-grid">' +
+    '</div></div></div>' +
+
+    '<div class="panel"><div class="panel-head">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>' +
+      '<h2>Dates</h2></div><div class="panel-body"><div class="form-grid">' +
     dtF('ed-intdate','Internal Due Date', job.internal_submission_date||'') +
     dtF('ed-actdate','Actual Submission', job.actual_internal_submission_date||'') +
     dtF('ed-duedate','Due Date', job.due_date||'') +
     dtF('ed-issueddate','Issued Date', job.issued_date||'') +
+    '</div></div></div>' +
+
+    '<div class="panel"><div class="panel-head" id="job-history-head" style="cursor:pointer">' +
+      '<span class="chevron" style="display:inline-block;font-size:11px;color:var(--text-soft)">&#9662;</span>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
+      '<h2>History</h2></div><div class="panel-body" id="job-history-body">' +
+      '<div id="job-history-list" style="font-size:12px;color:var(--text-soft)">Loading…</div>' +
     '</div></div>' +
-    '<div class="detail-section"><div class="detail-section-title">History</div><div id="job-history-list" style="font-size:12px;color:var(--text-soft)">Loading…</div></div>' +
+
     '<hr class="div">' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
       '<a class="btn btn-ghost" href="../board/">Cancel</a>' +
@@ -69,6 +87,9 @@ function renderJob(job) {
   document.getElementById('job-body').innerHTML = html;
   document.getElementById('job-save').addEventListener('click', saveJobDetail);
   document.getElementById('job-upload-section').style.display = 'block';
+
+  enhanceSelectsIn(document.getElementById('job-body'));
+  makeCollapsible(document.getElementById('job-history-head'), document.getElementById('job-history-body'), false);
 
   loadJobHistory(job.id).then(renderJobHistory).catch(function(err) {
     document.getElementById('job-history-list').textContent = 'Could not load history: ' + err.message;

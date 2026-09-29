@@ -33,16 +33,22 @@
           <a class="btn btn-ghost" href="../board/">&larr; Back to Board</a>
         </div>
       </div>
-      <div id="job-body" style="max-width:760px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:24px"></div>
+      <div id="job-body" style="max-width:760px"></div>
 
-      <div id="job-upload-section" style="display:none;max-width:760px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:24px;margin-top:16px">
-        <div class="detail-section-title">Add Files to OneDrive</div>
+      <div id="job-upload-section" class="panel" style="display:none;max-width:760px">
+        <div class="panel-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/></svg>
+          <h2>Add Files to OneDrive</h2>
+        </div>
+        <div class="panel-body">
         <div class="dropzone" id="job-dropzone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
           <div>Drop files here, or click to browse</div>
           <div style="font-size:11px;margin-top:4px;opacity:.8">Creates this job's OneDrive folder first if it doesn't exist yet — uploads into 01. Architecture/a. Working Docs</div>
           <input type="file" id="job-files" multiple>
         </div>
         <div class="file-chip-list" id="job-file-list"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -53,6 +59,7 @@
 
 <script src="../shared/core.js"></script>
 <script src="../shared/nav.js"></script>
+<script src="../shared/ui.js"></script>
 <script src="../shared/msal.js"></script>
 <script src="../shared/onedrive.js"></script>
 <script src="job.js"></script>

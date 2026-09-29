@@ -74,7 +74,10 @@ async function loadClients() {
 function toast(msg, type) {
   var c = document.getElementById('toasts'), t = document.createElement('div');
   t.className = 'toast ' + (type||''); t.textContent = msg; c.appendChild(t);
-  setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
+  setTimeout(function(){
+    t.classList.add('leaving');
+    setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 180);
+  }, 4000);
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function shortClient(n){ return (n||'').replace(' Pty Ltd','').replace(' Consulting Engineers','').replace(' Engineering Group',' Group'); }

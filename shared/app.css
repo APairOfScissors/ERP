@@ -3,7 +3,7 @@
   --bg:#001736;--bg-mid:#00183e;--surface:#001f50;--surface2:#002060;
   --rule:#002878;--rule-mid:#003090;
   --text:#e8f4ff;--text-mid:#79d7fd;--text-soft:#3a6a90;
-  --accent:#00bbfa;--accent-dim:#001f3a;--accent-txt:#79d7fd;
+  --accent:#00bbfa;--accent-dim:#001f3a;--accent-txt:#79d7fd;--accent-glow:rgba(0,187,250,0.18);
   --booked-bg:#001f3a;--booked-txt:#ffc54a;--booked-bdr:#3a3010;
   --inprog-bg:#001a40;--inprog-txt:#00bbfa;--inprog-bdr:#003878;
   --intcheck-bg:#001f3d;--intcheck-txt:#4fd8c4;--intcheck-bdr:#0a4a42;
@@ -21,7 +21,7 @@
   --bg:#FDFBF0;--bg-mid:#F5F0D8;--surface:#FFFFFF;--surface2:#FBF7E8;
   --rule:#E8E0C0;--rule-mid:#D0C898;
   --text:#1A1408;--text-mid:#5A4E30;--text-soft:#9A8E6A;
-  --accent:#D4A000;--accent-dim:#FFF8D0;--accent-txt:#8A6800;
+  --accent:#D4A000;--accent-dim:#FFF8D0;--accent-txt:#8A6800;--accent-glow:rgba(212,160,0,0.16);
   --booked-bg:#FFF8D0;--booked-txt:#7A6000;--booked-bdr:#E8D070;
   --inprog-bg:#FFF0C8;--inprog-txt:#8A5800;--inprog-bdr:#E8C060;
   --intcheck-bg:#E0F5F0;--intcheck-txt:#0A6B5C;--intcheck-bdr:#8CD9C8;
@@ -36,6 +36,29 @@
   --overdue-txt:#C04000;--stat-overdue-bdr:#C04000;
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+/* Faint theme-matched background — a whisper of diagonal line-work plus a
+   tonal wash between each theme's own bg/bg-mid, nothing louder. Kept to
+   two layers, no glow/dot/animation, so real content on top always reads
+   first. */
+[data-theme="p3"] body{
+  background-color:#001736;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(0,187,250,0.028) 0px, rgba(0,187,250,0.028) 1px, transparent 1px, transparent 140px),
+    linear-gradient(160deg, #001736 0%, #00183e 55%, #001736 100%);
+  background-repeat:repeat,no-repeat;
+  background-attachment:fixed,fixed;
+}
+[data-theme="p4"] body{
+  background-color:#FDFBF0;
+  background-image:
+    repeating-linear-gradient(-115deg, rgba(212,160,0,0.035) 0px, rgba(212,160,0,0.035) 1px, transparent 1px, transparent 140px),
+    linear-gradient(160deg, #FDFBF0 0%, #F5F0D8 100%);
+  background-repeat:repeat,no-repeat;
+  background-attachment:fixed,fixed;
+}
+@media (max-width:640px){
+  [data-theme="p3"] body,[data-theme="p4"] body{background-attachment:scroll,scroll}
+}
 #login-screen{display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
 .login-card{background:var(--surface);border:1px solid var(--rule-mid);border-radius:16px;padding:48px 40px;text-align:center;max-width:360px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.4)}
 .login-logo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -51,7 +74,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 #app-shell{display:none}
 .shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
 .main{overflow-y:auto;min-height:100vh}
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .page{display:none;padding:32px 36px}
+.page.active{animation:pageIn 0.22s ease}
+@media (prefers-reduced-motion: reduce){.page.active{animation:none}}
 .page.active{display:block}
 .sidebar{background:var(--sidebar-bg);border-right:1px solid var(--sidebar-bdr);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;transition:transform 0.25s ease}
 .mobile-topbar{display:none;align-items:center;gap:12px;padding:12px 16px;background:var(--sidebar-bg);border-bottom:1px solid var(--sidebar-bdr);position:sticky;top:0;z-index:120}
@@ -197,10 +223,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stage-group{margin-bottom:12px}
 .stage-group-head{display:flex;align-items:center;gap:9px;padding:10px 4px;cursor:pointer;user-select:none}
 .stage-group-head:hover .stage-group-title{color:var(--accent)}
-.stage-group-head .chevron{font-size:11px;color:var(--text-soft);transition:transform 0.15s;width:10px}
+.stage-group-head .chevron{display:inline-block;font-size:11px;color:var(--text-soft);transition:transform 0.2s ease;width:10px}
 .stage-group-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-family:'DM Mono',monospace;transition:color 0.13s}
-.stage-group-body[hidden]{display:none}
 .stage-group-body .table-wrap{margin-top:6px}
+@media (prefers-reduced-motion: reduce){.stage-group-head .chevron{transition:none}}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:10px 14px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-soft);border-bottom:1px solid var(--rule);background:var(--surface2);white-space:nowrap;font-family:'DM Mono',monospace}
 tbody td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:middle}
@@ -208,9 +234,11 @@ tbody tr:last-child td{border-bottom:none}
 tbody tr.job-row{cursor:pointer}
 tbody tr.job-row:hover td{background:var(--surface2)}
 .td-mono{font-family:'DM Mono',monospace;font-size:12px}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
-.modal-bg.open{display:flex}
-.modal{background:var(--surface);border-radius:12px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto;border:1px solid var(--rule-mid);box-shadow:0 24px 80px rgba(0,0,0,0.4)}
+.modal-bg{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(0px);opacity:0;pointer-events:none;transition:opacity 0.16s ease,background-color 0.16s ease,backdrop-filter 0.16s ease}
+.modal-bg.open{opacity:1;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);pointer-events:auto}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto;border:1px solid var(--rule-mid);box-shadow:0 24px 80px rgba(0,0,0,0.4);transform:scale(0.96) translateY(8px);transition:transform 0.18s ease}
+.modal-bg.open .modal{transform:none}
+@media (prefers-reduced-motion: reduce){.modal-bg,.modal{transition:none}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--surface);z-index:1}
 .modal-title{font-size:15px;font-weight:700}
 .modal-close{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text-soft);display:flex;align-items:center;justify-content:center}
@@ -225,9 +253,56 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 .field input:focus,.field select:focus{border-color:var(--rule-mid);background:var(--surface)}
 .form-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-soft);padding:14px 0 8px;border-top:1px solid var(--rule);grid-column:span 2;font-family:'DM Mono',monospace}
 .form-section:first-child{border-top:none;padding-top:0}
-.dropzone{border:2px dashed var(--rule-mid);border-radius:8px;padding:22px;text-align:center;cursor:pointer;color:var(--text-soft);font-size:12.5px;transition:all 0.13s}
-.dropzone:hover,.dropzone.dragover{border-color:var(--accent);color:var(--text);background:var(--surface2)}
+.dropzone{border:2px dashed var(--rule-mid);border-radius:10px;padding:30px 20px;text-align:center;cursor:pointer;color:var(--text-soft);font-size:12.5px;transition:all 0.18s ease;background:var(--surface2)}
+.dropzone svg{width:26px;height:26px;color:var(--text-soft);margin-bottom:8px;transition:all 0.2s ease}
+.dropzone:hover{border-color:var(--accent);color:var(--text);background:var(--accent-glow,var(--surface2))}
+.dropzone:hover svg{color:var(--accent);transform:translateY(-2px)}
+.dropzone.dragover{border-color:var(--accent);border-style:solid;color:var(--text);background:var(--accent-glow,var(--surface2));transform:scale(1.008)}
+.dropzone.dragover svg{color:var(--accent);transform:translateY(-3px) scale(1.06)}
 .dropzone input[type=file]{display:none}
+@media (prefers-reduced-motion: reduce){.dropzone,.dropzone svg{transition:none}}
+
+/* ---------- Redesigned form panels (grouped cards, replacing the flat
+   form-section-divided grid) ---------- */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;margin-bottom:14px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:box-shadow 0.18s ease}
+.panel:hover{box-shadow:0 6px 22px rgba(0,0,0,0.12)}
+.panel-head{display:flex;align-items:center;gap:9px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--surface2)}
+.panel-head svg{width:15px;height:15px;color:var(--accent);flex:none}
+.panel-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-family:'DM Mono',monospace;color:var(--text);margin:0}
+.panel-head h2 small{text-transform:none;font-weight:400;letter-spacing:0;color:var(--text-soft);font-family:'Inter',sans-serif;font-size:11px}
+.panel-body{padding:18px}
+
+/* ---------- Restyled date inputs: recolor the native picker icon to match
+   the theme's accent instead of raw browser chrome ---------- */
+.field input[type=date]{color-scheme:dark}
+[data-theme="p4"] .field input[type=date]{color-scheme:light}
+.field input[type=date]::-webkit-calendar-picker-indicator{opacity:0.75;cursor:pointer;transition:opacity 0.15s ease}
+.field input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
+[data-theme="p3"] .field input[type=date]::-webkit-calendar-picker-indicator{filter:invert(72%) sepia(75%) saturate(1000%) hue-rotate(160deg) brightness(1.1)}
+[data-theme="p4"] .field input[type=date]::-webkit-calendar-picker-indicator{filter:invert(56%) sepia(97%) saturate(1200%) hue-rotate(3deg) brightness(0.95)}
+.field input:focus,.field select:focus{box-shadow:0 0 0 3px var(--accent-glow,transparent)}
+
+/* ---------- Custom select (progressive enhancement over a hidden native
+   <select> — see shared/ui.js) ---------- */
+.rselect{position:relative}
+.rselect-trigger{display:flex;align-items:center;gap:8px;width:100%;padding:8px 11px;border:1px solid var(--rule);border-radius:5px;background:var(--surface2);color:var(--text);font:13.5px 'Inter',sans-serif;cursor:pointer;user-select:none;transition:border-color 0.15s ease,box-shadow 0.15s ease}
+.rselect-trigger .rselect-label.placeholder{color:var(--text-soft)}
+.rselect-trigger svg{margin-left:auto;width:13px;height:13px;color:var(--text-soft);transition:transform 0.18s ease;flex:none}
+.rselect.open .rselect-trigger{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow,transparent)}
+.rselect.open .rselect-trigger svg{transform:rotate(180deg)}
+.rselect-panel{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface);border:1px solid var(--rule-mid);border-radius:8px;box-shadow:0 14px 34px rgba(0,0,0,0.22);padding:4px;z-index:30;max-height:220px;overflow-y:auto;opacity:0;transform:translateY(-4px) scale(0.98);pointer-events:none;transition:opacity 0.13s ease,transform 0.13s ease}
+.rselect.open .rselect-panel{opacity:1;transform:none;pointer-events:auto}
+.ropt{padding:7px 10px;border-radius:5px;font-size:13px;cursor:pointer;color:var(--text)}
+.ropt:hover{background:var(--surface2)}
+.ropt.selected{background:var(--accent-glow,var(--surface2));color:var(--accent-txt,var(--accent));font-weight:600}
+@media (prefers-reduced-motion: reduce){.rselect-trigger,.rselect-trigger svg,.rselect-panel{transition:none}}
+
+/* ---------- Smooth collapsible sections (My Jobs stage groups, Job Detail
+   History) — grid-rows trick animates height without measuring pixels ---------- */
+.collapsible{display:grid;grid-template-rows:0fr;transition:grid-template-rows 0.22s ease}
+.collapsible.expanded{grid-template-rows:1fr}
+.collapsible>.collapsible-inner{overflow:hidden;min-height:0}
+@media (prefers-reduced-motion: reduce){.collapsible{transition:none}}
 .file-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .file-chip{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;background:var(--surface2);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;color:var(--text)}
 .file-chip button{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:12px;padding:0;line-height:1}
@@ -251,9 +326,11 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 .empty-title{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px}
 #toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999}
 .toast{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:toastIn 0.18s ease;max-width:320px;font-family:'DM Mono',monospace;background:var(--surface2);color:var(--text);border:1px solid var(--rule-mid)}
+.toast.leaving{animation:toastOut 0.16s ease forwards}
 .toast.ok{border-color:var(--invoicing-bdr);color:var(--invoicing-txt)}
 .toast.err{border-color:var(--booked-bdr);color:var(--booked-txt)}
 @keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes toastOut{from{opacity:1;max-height:60px}to{opacity:0;transform:translateX(6px);max-height:0}}
 .spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:rot 0.5s linear infinite;vertical-align:middle}
 @keyframes rot{to{transform:rotate(360deg)}}
 hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0}

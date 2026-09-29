@@ -95,6 +95,7 @@ function submitNewJob() {
     toast('Job ' + jobno + ' booked!', 'ok');
     ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('nj-client').value = '';
+    document.getElementById('nj-client').dispatchEvent(new Event('change'));
 
     // Booking is confirmed immediately — folder creation (and any queued file
     // uploads) runs after, in the background, and just toasts its own
@@ -123,5 +124,10 @@ function submitNewJob() {
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';
 
-  loadClients().then(initNewJob).catch(function(err){ toast('Failed to load clients: ' + err.message, 'err'); });
+  loadClients().then(function(list) {
+    initNewJob(list);
+    // Enhanced after the client <select> is actually populated, so the
+    // custom dropdown's option list isn't built from an empty placeholder.
+    enhanceSelectsIn(document);
+  }).catch(function(err){ toast('Failed to load clients: ' + err.message, 'err'); });
 }());
