@@ -61,6 +61,7 @@ function showLogin() {
   if (window.opener) return;
 
   document.getElementById('login-btn').addEventListener('click', signIn);
+  document.getElementById('login-email').addEventListener('keydown', function(e){ if (e.key === 'Enter') signIn(); });
   document.getElementById('login-password').addEventListener('keydown', function(e){ if (e.key === 'Enter') signIn(); });
 
   var { data: { session } } = await sb.auth.getSession();

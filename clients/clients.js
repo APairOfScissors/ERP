@@ -11,7 +11,7 @@ function renderClients() {
   var g = document.getElementById('clients-grid');
   if (!clients.length) { g.innerHTML = '<div class="empty"><span class="empty-ico">&#128101;</span><p class="empty-title">No clients</p></div>'; return; }
   g.innerHTML = clients.map(function(c) {
-    return '<div class="client-card" data-clientid="'+c.client_id+'">' +
+    return '<div class="client-card" data-clientid="'+esc(c.client_id)+'">' +
       '<div class="client-code">Client '+esc(c.code)+'</div>' +
       '<div class="client-name">'+esc(c.name)+'</div>' +
       (c.email_to ? '<div class="client-email">&#9993; '+esc(c.email_to)+'</div>' : '') +
@@ -29,6 +29,10 @@ function openClientModal(clientId) {
   var c = clientId ? clients.find(function(x){ return x.client_id === clientId; }) : null;
   document.getElementById('cm-title').textContent  = c ? 'Edit Client' : 'Add Client';
   document.getElementById('cm-id').value      = c ? c.client_id : '';
+  // Client ID is the upsert conflict key — changing it on an existing client
+  // would silently insert a new row instead of renaming, orphaning the old
+  // one, so it's only settable when creating a client.
+  document.getElementById('cm-id').disabled   = !!c;
   document.getElementById('cm-code').value    = c ? c.code : '';
   document.getElementById('cm-name').value    = c ? c.name : '';
   document.getElementById('cm-address').value = c ? c.address : '';
@@ -38,15 +42,17 @@ function openClientModal(clientId) {
 }
 
 function saveClient() {
-  var name = document.getElementById('cm-name').value.trim();
-  var id   = document.getElementById('cm-id').value.trim();
-  if (!name || !id) { toast('Name and ID required', 'err'); return; }
+  var name    = document.getElementById('cm-name').value.trim();
+  var id      = document.getElementById('cm-id').value.trim();
+  var emailTo = document.getElementById('cm-emailto').value.trim();
+  if (!name || !id)  { toast('Name and ID required', 'err'); return; }
+  if (!emailTo)      { toast('Email To required', 'err'); return; }
   var data = {
     client_id: id,
     code:      document.getElementById('cm-code').value.trim(),
     name,
     address:   document.getElementById('cm-address').value.trim(),
-    email_to:  document.getElementById('cm-emailto').value.trim(),
+    email_to:  emailTo,
     email_cc:  document.getElementById('cm-emailcc').value.trim(),
   };
   sb.from('clients').upsert(data, { onConflict: 'client_id' }).then(function() {

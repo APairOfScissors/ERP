@@ -87,7 +87,7 @@ var JOB_STAGES = ['Booked','In Progress','Int Checking','Ext Checking','Invoicin
 // LDW staff, so Checker is a free-text field instead of a fixed dropdown — see job.js/new-job.js.
 var ASSIGNEE_CODES = ['','CN','SL','LM'];
 function stagePill(p){ var m={'Booked':'pill-booked','In Progress':'pill-inprog','Int Checking':'pill-intcheck','Ext Checking':'pill-extcheck','Invoicing':'pill-invoicing','Completed':'pill-complete','Cancelled':'pill-cancelled'}; return '<span class="stage-pill '+(m[p]||'pill-booked')+'">'+esc(p)+'</span>'; }
-function di(label, val, full){ return '<div class="detail-item'+(full?' style="grid-column:span 2"':'')+'"><label>'+label+'</label><span>'+val+'</span></div>'; }
+function di(label, val, full){ return '<div class="detail-item"'+(full?' style="grid-column:span 2"':'')+'><label>'+label+'</label><span>'+val+'</span></div>'; }
 function selF(id, label, opts, val){ return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; }
 function dtF(id, label, val){ return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+(val||'')+'"></div>'; }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
