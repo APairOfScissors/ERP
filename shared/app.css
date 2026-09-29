@@ -310,6 +310,7 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 .ropt{padding:7px 10px;border-radius:5px;font-size:13px;cursor:pointer;color:var(--text)}
 .ropt:hover{background:var(--surface2)}
 .ropt.selected{background:var(--accent-glow,var(--surface2));color:var(--accent-txt,var(--accent));font-weight:600}
+.ropt.active{box-shadow:inset 0 0 0 1px var(--accent)}
 @media (prefers-reduced-motion: reduce){.rselect-trigger,.rselect-trigger svg,.rselect-panel{transition:none}}
 
 /* ---------- Smooth collapsible sections (My Jobs stage groups, Job Detail

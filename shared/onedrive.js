@@ -123,12 +123,20 @@ async function createFolder(token, parentPath, name) {
   }
 }
 
+// Falls back to the client's own name (e.g. "04. Some New Client Pty Ltd") when
+// the client code isn't one of the 3 hardcoded ones above — without this, a 4th+
+// client with no OneDrive folder yet would resolve to a blank/undefined name and
+// fail with a cryptic Graph 400 on first use.
+function clientFolderFallbackName(clientCode, clientName) {
+  return ONEDRIVE_CLIENT_FOLDERS[clientCode] || sanitizeFolderName(clientCode + '. ' + (clientName || 'Client'));
+}
+
 // Resolves (without creating) the folder a job's own folder lives directly under:
 // the client folder, plus a year subfolder for Dexcon-style job numbers. Shared by
 // creation and the read-only "Open in OneDrive" lookup so they can't disagree.
-async function resolveJobParentPath(token, clientCode, jobNo) {
+async function resolveJobParentPath(token, clientCode, clientName, jobNo) {
   var clientJobsBase = '02. Engineering Documents/02. Client Jobs';
-  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]);
+  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, clientFolderFallbackName(clientCode, clientName));
   var parentPath = clientJobsBase + '/' + clientFolderName;
   var yearPrefix = jobYearPrefix(jobNo);
   if (yearPrefix) {
@@ -139,12 +147,12 @@ async function resolveJobParentPath(token, clientCode, jobNo) {
 }
 
 // Returns { jobPath, bookingDocsPath } once the full tree exists.
-async function createJobFolders(token, clientCode, jobNo, address, bookingDateStr) {
+async function createJobFolders(token, clientCode, clientName, jobNo, address, bookingDateStr) {
   await ensureFolder(token, '', '02. Engineering Documents');
   await ensureFolder(token, '02. Engineering Documents', '02. Client Jobs');
   var clientJobsBase = '02. Engineering Documents/02. Client Jobs';
 
-  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]);
+  var clientFolderName = await resolveClientFolderName(token, clientJobsBase, clientCode, clientFolderFallbackName(clientCode, clientName));
   await ensureFolder(token, clientJobsBase, clientFolderName);
   var parentPath = clientJobsBase + '/' + clientFolderName;
 
@@ -178,11 +186,11 @@ async function createJobFolders(token, clientCode, jobNo, address, bookingDateSt
   return { jobPath: jobPath, bookingDocsPath: jobPath + '/01. Architecture/a. Working Docs/' + bookingDocsName };
 }
 
-async function createInvoiceFolder(token, clientCode, jobNo, revision) {
+async function createInvoiceFolder(token, clientCode, clientName, jobNo, revision) {
   await ensureFolder(token, '', '03. Finance Documents');
   await ensureFolder(token, '03. Finance Documents', 'Invoices');
   var clientFolderName = await resolveClientFolderName(
-    token, '03. Finance Documents/Invoices', clientCode, ONEDRIVE_CLIENT_FOLDERS[clientCode]
+    token, '03. Finance Documents/Invoices', clientCode, clientFolderFallbackName(clientCode, clientName)
   );
   await ensureFolder(token, '03. Finance Documents/Invoices', clientFolderName);
   await ensureFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
@@ -190,8 +198,8 @@ async function createInvoiceFolder(token, clientCode, jobNo, revision) {
 
 // Read-only equivalent of the job-folder path creation resolves — used by
 // "Open in OneDrive" so it points at exactly the same folder, without creating anything.
-async function resolveJobFolderPath(token, clientCode, jobNo, address) {
-  var parentPath = await resolveJobParentPath(token, clientCode, jobNo);
+async function resolveJobFolderPath(token, clientCode, clientName, jobNo, address) {
+  var parentPath = await resolveJobParentPath(token, clientCode, clientName, jobNo);
   return parentPath + '/' + sanitizeFolderName(jobNo + ' - ' + address);
 }
 
@@ -284,10 +292,10 @@ function createOneDriveFoldersInBackground(client, jobNo, revision, address, boo
   toast('Creating OneDrive folders…', 'ok');
   var paths;
   getGraphToken().then(function(token) {
-    return createJobFolders(token, client.code, jobNo, address, bookingDateStr)
+    return createJobFolders(token, client.code, client.name, jobNo, address, bookingDateStr)
       .then(function(p) {
         paths = p;
-        return createInvoiceFolder(token, client.code, jobNo, revision);
+        return createInvoiceFolder(token, client.code, client.name, jobNo, revision);
       })
       .then(function() {
         if (files && files.length) return uploadFilesToOneDrive(token, paths.bookingDocsPath, files);

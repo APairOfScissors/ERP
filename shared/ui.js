@@ -20,6 +20,7 @@ function enhanceSelect(selectEl) {
   trigger.appendChild(labelSpan);
   trigger.insertAdjacentHTML('beforeend', CHEVRON_SVG);
   var panel = document.createElement('div'); panel.className = 'rselect-panel';
+  var activeIndex = -1;
 
   function syncLabel() {
     var opt = selectEl.options[selectEl.selectedIndex];
@@ -27,35 +28,62 @@ function enhanceSelect(selectEl) {
     labelSpan.textContent = text || ' ';
     labelSpan.classList.toggle('placeholder', !selectEl.value);
   }
+  function selectIndex(idx) {
+    var opt = selectEl.options[idx]; if (!opt) return;
+    if (selectEl.value !== opt.value) {
+      selectEl.value = opt.value;
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    syncLabel();
+    wrap.classList.remove('open');
+    buildOptions();
+  }
+  function setActive(idx) {
+    var rows = panel.children;
+    if (!rows.length) return;
+    idx = Math.max(0, Math.min(rows.length - 1, idx));
+    Array.prototype.forEach.call(rows, function(row){ row.classList.remove('active'); });
+    rows[idx].classList.add('active');
+    rows[idx].scrollIntoView({ block: 'nearest' });
+    activeIndex = idx;
+  }
   function buildOptions() {
     panel.innerHTML = '';
-    Array.prototype.forEach.call(selectEl.options, function(opt) {
+    Array.prototype.forEach.call(selectEl.options, function(opt, idx) {
       var row = document.createElement('div'); row.className = 'ropt' + (opt.value === selectEl.value ? ' selected' : '');
       row.textContent = opt.textContent || ' ';
-      row.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (selectEl.value !== opt.value) {
-          selectEl.value = opt.value;
-          selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        syncLabel();
-        wrap.classList.remove('open');
-        buildOptions();
-      });
+      row.addEventListener('mousedown', function(e){ e.preventDefault(); }); // keeps focus (and keyboard nav) on the trigger
+      row.addEventListener('click', function(e) { e.stopPropagation(); selectIndex(idx); });
       panel.appendChild(row);
     });
   }
 
+  function openPanel() {
+    document.querySelectorAll('.rselect.open').forEach(function(o){ if (o !== wrap) o.classList.remove('open'); });
+    wrap.classList.add('open');
+    setActive(selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0);
+  }
+  function closePanel() { wrap.classList.remove('open'); }
+
   trigger.addEventListener('click', function(e) {
     e.stopPropagation();
-    var willOpen = !wrap.classList.contains('open');
-    document.querySelectorAll('.rselect.open').forEach(function(o){ o.classList.remove('open'); });
-    if (willOpen) wrap.classList.add('open');
+    if (wrap.classList.contains('open')) closePanel(); else openPanel();
   });
   trigger.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger.click(); }
-    if (e.key === 'Escape') wrap.classList.remove('open');
+    var isOpen = wrap.classList.contains('open');
+    if (e.key === 'ArrowDown') { e.preventDefault(); isOpen ? setActive(activeIndex + 1) : openPanel(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); isOpen ? setActive(activeIndex - 1) : openPanel(); }
+    else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!isOpen) openPanel();
+      else if (activeIndex >= 0) selectIndex(activeIndex);
+    }
+    else if (e.key === 'Escape') { closePanel(); }
+    else if (e.key === 'Tab') { closePanel(); }
   });
+  // Covers Tab-away and any other focus loss the click-outside listener below doesn't catch;
+  // delayed so an in-progress row click still lands first.
+  trigger.addEventListener('blur', function(){ setTimeout(closePanel, 120); });
 
   // Keeps the custom UI in sync with the native select regardless of what
   // changed it — our own option clicks (below) dispatch this same event,

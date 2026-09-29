@@ -93,9 +93,14 @@ function submitNewJob() {
   }).then(function() {
     btn.disabled = false; btn.innerHTML = 'Book Job';
     toast('Job ' + jobno + ' booked!', 'ok');
-    ['nj-jobno','nj-rev','nj-address','nj-jobtype'].forEach(function(id){ document.getElementById(id).value = ''; });
-    document.getElementById('nj-client').value = '';
-    document.getElementById('nj-client').dispatchEvent(new Event('change'));
+    // Full reset — otherwise the next job booked right after silently
+    // inherits the previous job's assignees/dates/status.
+    ['nj-jobno','nj-rev','nj-address','nj-jobtype','nj-checker','nj-duedate','nj-intdate'].forEach(function(id){ document.getElementById(id).value = ''; });
+    ['nj-client','nj-eng','nj-drafter','nj-sv','nj-jobstatus'].forEach(function(id){
+      var el = document.getElementById(id);
+      el.value = '';
+      el.dispatchEvent(new Event('change'));
+    });
 
     // Booking is confirmed immediately — folder creation (and any queued file
     // uploads) runs after, in the background, and just toasts its own

@@ -158,7 +158,7 @@ async function openOneDriveFolder() {
     var client = findClientByName(clientsList, currentJob.client_name);
     if (!client || !client.code) throw new Error('No client code found for "' + currentJob.client_name + '"');
     var token = await getGraphToken();
-    var path = await resolveJobFolderPath(token, client.code, currentJob.job_no, currentJob.address);
+    var path = await resolveJobFolderPath(token, client.code, client.name, currentJob.job_no, currentJob.address);
     var url = await getFolderWebUrl(token, path);
     if (win) win.location.href = url; else window.open(url, '_blank');
   } catch (err) {
@@ -197,8 +197,8 @@ async function handleJobFiles(fileList) {
     toast('Preparing OneDrive folder…', 'ok');
     var token = await getGraphToken();
     var todayStr = new Date().toISOString().slice(0,10);
-    var paths = await createJobFolders(token, client.code, currentJob.job_no, currentJob.address, todayStr);
-    await createInvoiceFolder(token, client.code, currentJob.job_no, currentJob.revision);
+    var paths = await createJobFolders(token, client.code, client.name, currentJob.job_no, currentJob.address, todayStr);
+    await createInvoiceFolder(token, client.code, client.name, currentJob.job_no, currentJob.revision);
     await uploadFilesToOneDrive(token, paths.jobPath + '/01. Architecture/a. Working Docs', files);
     files.forEach(function(f){ addUploadedChip(f.name); });
     toast('Uploaded ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' to OneDrive', 'ok');
