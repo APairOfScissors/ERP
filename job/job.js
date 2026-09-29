@@ -17,6 +17,14 @@ async function saveJobUpdate(id, updates) {
   if (error) throw error;
 }
 
+// job_history is populated by a DB trigger (sql/job-activity-trail.sql) whenever
+// job_progress changes — this only ever reads it, never writes.
+async function loadJobHistory(jobId) {
+  var { data, error } = await sb.from('job_history').select('*').eq('job_id', jobId).order('changed_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
 // ════════════════════════════════════════════════
 //  RENDER
 // ════════════════════════════════════════════════
@@ -52,6 +60,7 @@ function renderJob(job) {
     dtF('ed-duedate','Due Date', job.due_date||'') +
     dtF('ed-issueddate','Issued Date', job.issued_date||'') +
     '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">History</div><div id="job-history-list" style="font-size:12px;color:var(--text-soft)">Loading…</div></div>' +
     '<hr class="div">' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
       '<a class="btn btn-ghost" href="../board/">Cancel</a>' +
@@ -60,6 +69,22 @@ function renderJob(job) {
   document.getElementById('job-body').innerHTML = html;
   document.getElementById('job-save').addEventListener('click', saveJobDetail);
   document.getElementById('job-upload-section').style.display = 'block';
+
+  loadJobHistory(job.id).then(renderJobHistory).catch(function(err) {
+    document.getElementById('job-history-list').textContent = 'Could not load history: ' + err.message;
+  });
+}
+
+function renderJobHistory(entries) {
+  var el = document.getElementById('job-history-list');
+  if (!entries.length) { el.textContent = 'No changes recorded yet.'; return; }
+  el.innerHTML = entries.map(function(h) {
+    var when = new Date(h.changed_at).toLocaleString('en-AU', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--rule)">' +
+      '<span class="mono">'+esc(h.old_value||'—')+'</span> &rarr; <span class="mono" style="color:var(--accent)">'+esc(h.new_value||'—')+'</span>' +
+      '<div style="font-size:11px;color:var(--text-soft);margin-top:2px">'+esc(h.changed_by_email||'Unknown')+' · '+when+'</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderJobNotFound() {

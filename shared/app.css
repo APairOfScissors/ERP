@@ -194,6 +194,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .pill-invoiced{background:var(--inprog-bg);color:var(--inprog-txt);border:1px solid var(--inprog-bdr)}
 .pill-paid{background:var(--invoicing-bg);color:var(--invoicing-txt);border:1px solid var(--invoicing-bdr)}
 .table-wrap{background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow-x:auto}
+.stage-group{margin-bottom:12px}
+.stage-group-head{display:flex;align-items:center;gap:9px;padding:10px 4px;cursor:pointer;user-select:none}
+.stage-group-head:hover .stage-group-title{color:var(--accent)}
+.stage-group-head .chevron{font-size:11px;color:var(--text-soft);transition:transform 0.15s;width:10px}
+.stage-group-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-family:'DM Mono',monospace;transition:color 0.13s}
+.stage-group-body[hidden]{display:none}
+.stage-group-body .table-wrap{margin-top:6px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:10px 14px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-soft);border-bottom:1px solid var(--rule);background:var(--surface2);white-space:nowrap;font-family:'DM Mono',monospace}
 tbody td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:middle}

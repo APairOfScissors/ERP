@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+<style>
+/* Report-only tokens: a 3-slot categorical set (client identity) validated
+   as CVD-safe together — see dataviz skill, references/palette.md ("first
+   three slots validate all-pairs in both modes"). Kept separate from the
+   app's stage-status colors (booked/inprog/etc.) since those are a
+   different semantic channel and this trio would collide with none of them. */
+[data-theme="p3"]{ --client-1:#3987e5; --client-2:#d95926; --client-3:#199e70; }
+[data-theme="p4"]{ --client-1:#2a78d6; --client-2:#eb6834; --client-3:#1baf7a; }
+
+.report-card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px 22px;margin-bottom:16px}
+.report-card h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-family:'DM Mono',monospace;color:var(--text-soft);margin-bottom:16px}
+
+.bars{display:flex;align-items:flex-end;gap:10px;height:160px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.bar-val{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;white-space:nowrap}
+.bar-rect{width:100%;max-width:38px;border-radius:5px 5px 2px 2px;background:var(--accent);transition:opacity 0.13s;min-height:3px}
+.bar-col:hover .bar-rect{opacity:0.8}
+.bar-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);margin-top:8px;white-space:nowrap}
+
+.hbar-row{display:grid;grid-template-columns:120px 1fr 90px;align-items:center;gap:12px;margin-bottom:12px}
+.hbar-row:last-child{margin-bottom:0}
+.hbar-name{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{background:var(--surface2);border-radius:4px;height:14px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:4px 2px 2px 4px;min-width:4px}
+.hbar-val{font-family:'DM Mono',monospace;font-size:12px;text-align:right;color:var(--text-soft)}
+
+.legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-reports">
+      <div class="ph"><h1 class="ph-title"><span>Reports</span></h1><span class="ph-sub">Business at a glance</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-reports">&#x21BA; Refresh</button></div></div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-lbl">Total Invoiced</div><div class="stat-val" id="rp-total-invoiced">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Outstanding</div><div class="stat-val red" id="rp-outstanding">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">CN Unpaid (A$)</div><div class="stat-val blue" id="rp-cn-unpaid">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">LM Unpaid (Rp)</div><div class="stat-val blue" id="rp-lm-unpaid">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Completed (this month)</div><div class="stat-val green" id="rp-completed-month">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Active Jobs</div><div class="stat-val" id="rp-active-jobs">—</div></div>
+      </div>
+
+      <div class="report-card">
+        <h2>Invoiced by Month</h2>
+        <div class="bars" id="rp-monthly-bars"></div>
+      </div>
+
+      <div class="report-card">
+        <h2>Revenue by Client (all time)</h2>
+        <div id="rp-client-bars"></div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="reports.js"></script>
+</body>
+</html>

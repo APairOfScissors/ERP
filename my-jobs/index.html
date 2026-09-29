@@ -25,13 +25,15 @@
 
   <main class="main">
     <div class="page active" id="page-myjobs">
-      <div class="ph"><h1 class="ph-title">My <span>Jobs</span></h1><span class="ph-sub" id="myjobs-sub">Loading…</span></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>Address</th><th>Job Type</th><th>Due</th><th>Progress</th></tr></thead>
-          <tbody id="myjobs-tbody"></tbody>
-        </table>
+      <div class="ph"><h1 class="ph-title" id="myjobs-title">My <span>Jobs</span></h1><span class="ph-sub" id="myjobs-sub">Loading…</span></div>
+      <div class="toolbar" id="myjobs-admin-toolbar" style="display:none">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-soft)">Viewing as</span>
+        <div class="view-toggle" id="myjobs-engineer-toggle">
+          <button class="vt-btn" type="button" data-code="CN">CN</button>
+          <button class="vt-btn" type="button" data-code="LM">LM</button>
+        </div>
       </div>
+      <div id="myjobs-groups"></div>
     </div>
   </main>
 </div>
