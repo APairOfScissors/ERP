@@ -52,7 +52,7 @@ function renderCN() {
       '<td class="hide-mobile" style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
       '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+((r.fee||0).toFixed(2))+'</td>' +
       '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px">'+Math.round(r.conv||0).toLocaleString('id-ID')+'</td>' +
-      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="cn" data-id="'+r.id+'">'+r.paid+'</button></td>';
+      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="cn" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
     tbody.appendChild(tr);
   });
   document.getElementById('cn-total-aud').textContent = totalAud.toFixed(2);
@@ -75,7 +75,7 @@ function renderLM() {
       '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
       '<td class="hide-mobile" style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
       '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+Math.round(r.conv||0).toLocaleString('id-ID')+'</td>' +
-      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="lm" data-id="'+r.id+'">'+r.paid+'</button></td>';
+      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="lm" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
     tbody.appendChild(tr);
   });
   document.getElementById('lm-total-rp').textContent  = Math.round(totalRp).toLocaleString('id-ID');
@@ -137,7 +137,10 @@ function savePayoutAmount() {
   document.getElementById('btn-refresh-payout').addEventListener('click', loadPayoutPage);
   document.getElementById('cn-rate').addEventListener('change', function(){
     var rate = parseFloat(this.value) || 0;
-    cnRows.forEach(function(r){ r.conv = Math.round((r.fee||0) * rate); });
+    // Only unpaid rows — a row already marked Paid has a real, saved amount
+    // that shouldn't be silently guessed at from whatever rate happens to be
+    // in this field right now.
+    cnRows.forEach(function(r){ if (r.paid !== 'Paid') r.conv = Math.round((r.fee||0) * rate); });
     renderCN();
   });
   document.getElementById('page-payout').addEventListener('click', function(e){
