@@ -10,13 +10,15 @@ var invFilter = 'all';
 async function loadInvoiceJobs() {
   var { data, error } = await sb.from('invoice_data').select('*').order('job_no');
   if (error) throw error;
-  // Group by job_no + revision
+  // Group by job_no + revision. `key` (not invoice_data's row id) is the card's
+  // identity throughout this page, since a job that hasn't been invoiced yet
+  // has no invoice_data row — and therefore no such id — at all.
   var jobMap = {};
   (data || []).forEach(function(row) {
     var key = row.job_no + '||' + (row.revision || '');
     if (!jobMap[key]) {
       jobMap[key] = {
-        id: row.id, job_no: row.job_no, revision: row.revision,
+        key: key, job_no: row.job_no, revision: row.revision,
         client_id: row.client_id, job_type: row.job_type,
         payment_status: row.payment_status || 'Unpaid',
         lineItems: []
@@ -25,6 +27,22 @@ async function loadInvoiceJobs() {
     if (row.payment_status) jobMap[key].payment_status = row.payment_status;
     jobMap[key].lineItems.push({ line_no: row.line_no, desc: row.description, amt: row.amount, id: row.id });
   });
+
+  // Nothing elsewhere in the app creates an invoice_data row when a job's stage
+  // becomes "Invoicing" — without this, such a job would sit on the Board at
+  // that stage forever without ever actually becoming visible here to invoice.
+  jobsLite.filter(function(j){ return j.job_progress === 'Invoicing'; }).forEach(function(j) {
+    var key = j.job_no + '||' + (j.revision || '');
+    if (!jobMap[key]) {
+      jobMap[key] = {
+        key: key, job_no: j.job_no, revision: j.revision,
+        client_id: null, job_type: j.job_type,
+        payment_status: 'Unpaid',
+        lineItems: []
+      };
+    }
+  });
+
   invJobs = Object.values(jobMap).map(function(j) {
     j.lineItems.sort(function(a,b){ return a.line_no - b.line_no; });
     return j;
@@ -33,7 +51,7 @@ async function loadInvoiceJobs() {
 }
 
 async function loadJobsLite() {
-  var { data, error } = await sb.from('jobs').select('job_no,revision,client_name');
+  var { data, error } = await sb.from('jobs').select('job_no,revision,client_name,job_type,job_progress');
   if (error) throw error;
   jobsLite = data || [];
   return jobsLite;
@@ -84,8 +102,12 @@ function resolveInvoiceClient(invJob) {
 // ════════════════════════════════════════════════
 function loadInvoicingPage() {
   document.getElementById('inv-container').innerHTML = '<div class="empty"><span class="empty-ico">&#8987;</span><p class="empty-title">Loading…</p></div>';
-  Promise.all([loadInvoiceJobs(), loadJobsLite(), loadClients()]).then(function(results) {
-    clients = results[2];
+  // loadInvoiceJobs() merges in Invoicing-stage jobs from jobsLite, so that
+  // has to be loaded first rather than in parallel with it.
+  Promise.all([loadJobsLite(), loadClients()]).then(function(results) {
+    clients = results[1];
+    return loadInvoiceJobs();
+  }).then(function() {
     updateInvStats(); renderInvoicing();
   }).catch(function(err){ toast('Failed to load invoicing: ' + err.message, 'err'); });
 }
@@ -130,14 +152,14 @@ function renderInvoicing() {
     card.appendChild(hdr);
     var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
     tbl.innerHTML = '<thead><tr><th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th><th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th><th style="width:30px"></th></tr></thead>';
-    var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.id;
-    job.lineItems.forEach(function(item){ tbody.appendChild(makeInvRow(job.id, item.desc, item.amt, item.id, isPaid)); });
+    var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.key;
+    job.lineItems.forEach(function(item){ tbody.appendChild(makeInvRow(job.key, item.desc, item.amt, item.id, isPaid)); });
     tbl.appendChild(tbody); card.appendChild(tbl);
     var totRow = document.createElement('div'); totRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-top:6px;border-top:1px solid var(--rule)';
     var addBtn = document.createElement('button'); addBtn.className = 'btn btn-ghost btn-sm'; addBtn.textContent = '+ Add Item'; addBtn.disabled = isPaid;
-    addBtn.addEventListener('click', (function(jid){ return function(){ document.getElementById('ilines-'+jid).appendChild(makeInvRow(jid,'',0,null,false)); updateInvTotal(jid); }; })(job.id));
+    addBtn.addEventListener('click', (function(jid){ return function(){ document.getElementById('ilines-'+jid).appendChild(makeInvRow(jid,'',0,null,false)); updateInvTotal(jid); }; })(job.key));
     var totSpan = document.createElement('span'); totSpan.style.cssText = 'font-family:DM Mono,monospace;font-size:13px;font-weight:700';
-    totSpan.innerHTML = 'Total &nbsp;<span id="itotal-'+job.id+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
+    totSpan.innerHTML = 'Total &nbsp;<span id="itotal-'+job.key+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
     totRow.appendChild(addBtn); totRow.appendChild(totSpan); card.appendChild(totRow);
     var act = document.createElement('div'); act.style.cssText = 'display:flex;gap:7px;align-items:center';
     var saveBtn = document.createElement('button'); saveBtn.className = 'btn btn-ghost btn-sm'; saveBtn.innerHTML = '&#128190; Save'; saveBtn.disabled = isPaid;
@@ -190,26 +212,37 @@ function getInvLines(jobId) {
 }
 
 function doSaveInv(job) {
-  var items = getInvLines(job.id);
+  var items = getInvLines(job.key);
   toast('Saving…', 'ok');
   saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid').then(function() {
     toast('Saved', 'ok');
+    // Reloads rather than just patching in place — a brand-new line item was
+    // just inserted with a real row id, and the DOM's dataset.lineId needs to
+    // pick that up or the next Save would insert duplicates instead of updating.
+    loadInvoicingPage();
   }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
-function doGenerateInv(job) {
-  var items = getInvLines(job.id);
+async function doGenerateInv(job) {
+  var items = getInvLines(job.key);
   if (!items.length || !items[0].desc) { toast('Add at least one line item', 'err'); return; }
   var resolved = resolveInvoiceClient(job);
   if (!resolved.client) { toast('Could not match this job to a client record', 'err'); return; }
   if (!resolved.client.email_to) { toast('Client "' + resolved.client.name + '" has no Email To set', 'err'); return; }
-  getNextInvoiceNo(resolved.client.code || '00').then(function(invNo) {
+  try {
+    // A job just promoted from the Invoicing stage (loadInvoiceJobs) has no
+    // invoice_data row yet — persist first, since Send only ever UPDATEs that
+    // row's payment_status and would otherwise silently match nothing.
+    await saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid');
+    var invNo = await getNextInvoiceNo(resolved.client.code || '00');
     job._pendingInvNo   = invNo;
     job._pendingItems   = items;
     job._pendingClient  = resolved.client;
     job._pendingInvDate = new Date();
     toast('Invoice ' + invNo + ' ready — click Send to email', 'ok');
-  }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
+  } catch (err) {
+    toast('Error: ' + err.message, 'err');
+  }
 }
 
 async function doSendInv(job, btnEl) {
