@@ -186,6 +186,8 @@ async function createJobFolders(token, clientCode, clientName, jobNo, address, b
   return { jobPath: jobPath, bookingDocsPath: jobPath + '/01. Architecture/a. Working Docs/' + bookingDocsName };
 }
 
+// Returns the folder's path so callers (e.g. uploading the generated invoice
+// PDF into it) don't have to re-derive it themselves.
 async function createInvoiceFolder(token, clientCode, clientName, jobNo, revision) {
   await ensureFolder(token, '', '03. Finance Documents');
   await ensureFolder(token, '03. Finance Documents', 'Invoices');
@@ -193,7 +195,25 @@ async function createInvoiceFolder(token, clientCode, clientName, jobNo, revisio
     token, '03. Finance Documents/Invoices', clientCode, clientFolderFallbackName(clientCode, clientName)
   );
   await ensureFolder(token, '03. Finance Documents/Invoices', clientFolderName);
-  await ensureFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, sanitizeFolderName(jobNo + '-' + revision));
+  var jobFolderName = sanitizeFolderName(jobNo + '-' + revision);
+  await ensureFolder(token, '03. Finance Documents/Invoices/' + clientFolderName, jobFolderName);
+  return '03. Finance Documents/Invoices/' + clientFolderName + '/' + jobFolderName;
+}
+
+// .eml/.msg files are saved email threads, not working documents — route them
+// into Corres In instead of mixing them in with drawings/working docs.
+function isCommsFile(filename) {
+  return /\.(eml|msg)$/i.test(filename || '');
+}
+
+// Graph's upload endpoints take a Blob/File body — this turns the base64
+// string jsPDF produces back into one so the generated invoice can be
+// uploaded the same way a dropped file is.
+function base64ToBlob(base64, mimeType) {
+  var binary = atob(base64);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
 }
 
 // Read-only equivalent of the job-folder path creation resolves — used by
@@ -298,7 +318,12 @@ function createOneDriveFoldersInBackground(client, jobNo, revision, address, boo
         return createInvoiceFolder(token, client.code, client.name, jobNo, revision);
       })
       .then(function() {
-        if (files && files.length) return uploadFilesToOneDrive(token, paths.bookingDocsPath, files);
+        if (!files || !files.length) return;
+        var commsFiles = Array.prototype.filter.call(files, function(f){ return isCommsFile(f.name); });
+        var otherFiles = Array.prototype.filter.call(files, function(f){ return !isCommsFile(f.name); });
+        return Promise.resolve()
+          .then(function(){ if (otherFiles.length) return uploadFilesToOneDrive(token, paths.bookingDocsPath, otherFiles); })
+          .then(function(){ if (commsFiles.length) return uploadFilesToOneDrive(token, paths.jobPath + '/07. Communication/Corres In', commsFiles); });
       });
   }).then(function() {
     toast('OneDrive folders' + (files && files.length ? ' and files' : '') + ' created', 'ok');

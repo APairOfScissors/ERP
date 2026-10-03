@@ -285,6 +285,19 @@ async function doSendInv(job, btnEl) {
     toast('Sending email…', 'ok');
     await sendInvoiceEmail(token, job, client, invNo, pdfBase64, total);
 
+    // The invoice folder gets created (see onedrive.js) but nothing was ever
+    // actually putting the PDF in it — it only ever went out as an email
+    // attachment, never saved to Steven's own records.
+    try {
+      var invoiceFolderPath = await createInvoiceFolder(token, client.code, client.name, job.job_no, job.revision);
+      var pdfFile = new File([base64ToBlob(pdfBase64, 'application/pdf')], invNo + '.pdf', { type: 'application/pdf' });
+      await uploadFileToOneDrive(token, invoiceFolderPath, pdfFile);
+    } catch (pdfSaveErr) {
+      // The email already went out — don't fail the whole send over a save-copy
+      // problem, just surface it so Steven knows to save it manually.
+      toast('Invoice sent, but saving a copy to OneDrive failed: ' + pdfSaveErr.message, 'err');
+    }
+
     var { error: logErr } = await sb.from('invoice_log').insert({
       invoice_no: invNo, job_no: job.job_no, revision: job.revision,
       client_id: client.client_id, client_name: client.name,

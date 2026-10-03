@@ -199,7 +199,11 @@ async function handleJobFiles(fileList) {
     var todayStr = new Date().toISOString().slice(0,10);
     var paths = await createJobFolders(token, client.code, client.name, currentJob.job_no, currentJob.address, todayStr);
     await createInvoiceFolder(token, client.code, client.name, currentJob.job_no, currentJob.revision);
-    await uploadFilesToOneDrive(token, paths.jobPath + '/01. Architecture/a. Working Docs', files);
+
+    var commsFiles = files.filter(function(f){ return isCommsFile(f.name); });
+    var otherFiles = files.filter(function(f){ return !isCommsFile(f.name); });
+    if (otherFiles.length) await uploadFilesToOneDrive(token, paths.jobPath + '/01. Architecture/a. Working Docs', otherFiles);
+    if (commsFiles.length) await uploadFilesToOneDrive(token, paths.jobPath + '/07. Communication/Corres In', commsFiles);
     files.forEach(function(f){ addUploadedChip(f.name); });
     toast('Uploaded ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' to OneDrive', 'ok');
   } catch (err) {
