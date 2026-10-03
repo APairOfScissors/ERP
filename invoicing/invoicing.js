@@ -145,6 +145,46 @@ function setInvFilter(f, el) {
   el.classList.add('active'); renderInvoicing();
 }
 
+function buildInvoiceCard(job) {
+  var pc    = {'Unpaid':'pill-unpaid','Invoiced':'pill-invoiced','Paid':'pill-paid'}[job.payment_status] || 'pill-unpaid';
+  var isPaid= job.payment_status === 'Paid', isInv = job.payment_status === 'Invoiced';
+  var total = job.lineItems.reduce(function(s,i){ return s + (parseFloat(i.amt)||0); }, 0);
+  var card  = document.createElement('div');
+  card.id = 'icard-' + job.key;
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px';
+  var hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px';
+  hdr.innerHTML = '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
+    (job.revision ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.revision)+'</span>' : '') +
+    '<span style="font-size:11px;color:var(--text-soft)">'+esc(job.job_type||'')+'</span>' +
+    (job.invoiceNo ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--invoicing-txt)">'+esc(job.invoiceNo)+'</span>' : '') +
+    '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.payment_status)+'</span></span>';
+  card.appendChild(hdr);
+  var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
+  tbl.innerHTML = '<thead><tr><th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th><th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th><th style="width:30px"></th></tr></thead>';
+  var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.key;
+  job.lineItems.forEach(function(item){ tbody.appendChild(makeInvRow(job.key, item.desc, item.amt, item.id, isPaid)); });
+  tbl.appendChild(tbody); card.appendChild(tbl);
+  var totRow = document.createElement('div'); totRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-top:6px;border-top:1px solid var(--rule)';
+  var addBtn = document.createElement('button'); addBtn.className = 'btn btn-ghost btn-sm'; addBtn.textContent = '+ Add Item'; addBtn.disabled = isPaid;
+  addBtn.addEventListener('click', (function(jid){ return function(){ document.getElementById('ilines-'+jid).appendChild(makeInvRow(jid,'',0,null,false)); updateInvTotal(jid); }; })(job.key));
+  var totSpan = document.createElement('span'); totSpan.style.cssText = 'font-family:DM Mono,monospace;font-size:13px;font-weight:700';
+  totSpan.innerHTML = 'Total &nbsp;<span id="itotal-'+job.key+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
+  totRow.appendChild(addBtn); totRow.appendChild(totSpan); card.appendChild(totRow);
+  var act = document.createElement('div'); act.style.cssText = 'display:flex;gap:7px;align-items:center';
+  var saveBtn = document.createElement('button'); saveBtn.className = 'btn btn-ghost btn-sm'; saveBtn.innerHTML = '&#128190; Save'; saveBtn.disabled = isPaid;
+  saveBtn.onclick = (function(j){ return function(){ doSaveInv(j); }; })(job);
+  var genBtn = document.createElement('button'); genBtn.className = 'btn btn-primary btn-sm'; genBtn.innerHTML = '&#128196; Generate'; genBtn.disabled = isInv || isPaid;
+  genBtn.onclick = (function(j){ return function(){ doGenerateInv(j); }; })(job);
+  var sendBtn = document.createElement('button'); sendBtn.className = 'btn btn-accent btn-sm'; sendBtn.innerHTML = '&#9993; Send'; sendBtn.disabled = isPaid;
+  sendBtn.onclick = (function(j,btn){ return function(){ doSendInv(j, btn); }; })(job, sendBtn);
+  var spacer = document.createElement('div'); spacer.style.flex = '1';
+  var paidBtn = document.createElement('button'); paidBtn.className = 'btn btn-green btn-sm'; paidBtn.innerHTML = '&#10003; Mark Paid'; paidBtn.disabled = !isInv || isPaid;
+  paidBtn.onclick = (function(j){ return function(){ doMarkPaid(j); }; })(job);
+  act.appendChild(saveBtn); act.appendChild(genBtn); act.appendChild(sendBtn); act.appendChild(spacer); act.appendChild(paidBtn);
+  card.appendChild(act);
+  return card;
+}
+
 function renderInvoicing() {
   var q = (document.getElementById('inv-search').value || '').toLowerCase();
   var filtered = invJobs.slice();
@@ -154,44 +194,46 @@ function renderInvoicing() {
   if (!filtered.length) { c.innerHTML = '<div class="empty"><span class="empty-ico">&#10003;</span><p class="empty-title">No invoicing jobs</p></div>'; return; }
   c.innerHTML = '';
   var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px';
-  filtered.forEach(function(job) {
-    var pc    = {'Unpaid':'pill-unpaid','Invoiced':'pill-invoiced','Paid':'pill-paid'}[job.payment_status] || 'pill-unpaid';
-    var isPaid= job.payment_status === 'Paid', isInv = job.payment_status === 'Invoiced';
-    var total = job.lineItems.reduce(function(s,i){ return s + (parseFloat(i.amt)||0); }, 0);
-    var card  = document.createElement('div');
-    card.style.cssText = 'background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px';
-    var hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px';
-    hdr.innerHTML = '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
-      (job.revision ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.revision)+'</span>' : '') +
-      '<span style="font-size:11px;color:var(--text-soft)">'+esc(job.job_type||'')+'</span>' +
-      (job.invoiceNo ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--invoicing-txt)">'+esc(job.invoiceNo)+'</span>' : '') +
-      '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.payment_status)+'</span></span>';
-    card.appendChild(hdr);
-    var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
-    tbl.innerHTML = '<thead><tr><th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th><th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th><th style="width:30px"></th></tr></thead>';
-    var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.key;
-    job.lineItems.forEach(function(item){ tbody.appendChild(makeInvRow(job.key, item.desc, item.amt, item.id, isPaid)); });
-    tbl.appendChild(tbody); card.appendChild(tbl);
-    var totRow = document.createElement('div'); totRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-top:6px;border-top:1px solid var(--rule)';
-    var addBtn = document.createElement('button'); addBtn.className = 'btn btn-ghost btn-sm'; addBtn.textContent = '+ Add Item'; addBtn.disabled = isPaid;
-    addBtn.addEventListener('click', (function(jid){ return function(){ document.getElementById('ilines-'+jid).appendChild(makeInvRow(jid,'',0,null,false)); updateInvTotal(jid); }; })(job.key));
-    var totSpan = document.createElement('span'); totSpan.style.cssText = 'font-family:DM Mono,monospace;font-size:13px;font-weight:700';
-    totSpan.innerHTML = 'Total &nbsp;<span id="itotal-'+job.key+'" style="color:var(--invoicing-txt)">A$ '+total.toFixed(2)+'</span>';
-    totRow.appendChild(addBtn); totRow.appendChild(totSpan); card.appendChild(totRow);
-    var act = document.createElement('div'); act.style.cssText = 'display:flex;gap:7px;align-items:center';
-    var saveBtn = document.createElement('button'); saveBtn.className = 'btn btn-ghost btn-sm'; saveBtn.innerHTML = '&#128190; Save'; saveBtn.disabled = isPaid;
-    saveBtn.onclick = (function(j){ return function(){ doSaveInv(j); }; })(job);
-    var genBtn = document.createElement('button'); genBtn.className = 'btn btn-primary btn-sm'; genBtn.innerHTML = '&#128196; Generate'; genBtn.disabled = isInv || isPaid;
-    genBtn.onclick = (function(j){ return function(){ doGenerateInv(j); }; })(job);
-    var sendBtn = document.createElement('button'); sendBtn.className = 'btn btn-accent btn-sm'; sendBtn.innerHTML = '&#9993; Send'; sendBtn.disabled = isPaid;
-    sendBtn.onclick = (function(j,btn){ return function(){ doSendInv(j, btn); }; })(job, sendBtn);
-    var spacer = document.createElement('div'); spacer.style.flex = '1';
-    var paidBtn = document.createElement('button'); paidBtn.className = 'btn btn-green btn-sm'; paidBtn.innerHTML = '&#10003; Mark Paid'; paidBtn.disabled = !isInv || isPaid;
-    paidBtn.onclick = (function(j){ return function(){ doMarkPaid(j); }; })(job);
-    act.appendChild(saveBtn); act.appendChild(genBtn); act.appendChild(sendBtn); act.appendChild(spacer); act.appendChild(paidBtn);
-    card.appendChild(act); wrap.appendChild(card);
-  });
+  filtered.forEach(function(job){ wrap.appendChild(buildInvoiceCard(job)); });
   c.appendChild(wrap);
+}
+
+// Re-fetches just this one job's invoice_data rows and swaps only its card's
+// DOM node in place — a full loadInvoicingPage() reload was wiping whatever
+// anyone was mid-typing into every OTHER card's line items on the page.
+// Returns the updated job object (callers that need to keep working with it,
+// like doGenerateInv setting its pending-send state, use this instead of the
+// stale object they were passed).
+async function refreshOneInvoiceJob(jobNo, revision) {
+  var key = jobNo + '||' + (revision || '');
+  var { data, error } = await sb.from('invoice_data').select('*')
+    .eq('job_no', jobNo).eq('revision', revision || '').order('line_no');
+  if (error) throw error;
+
+  var updated;
+  if (data && data.length) {
+    var firstLine = data.find(function(r){ return r.line_no === 1; }) || data[0];
+    updated = {
+      key: key, job_no: jobNo, revision: revision,
+      client_id: firstLine.client_id, job_type: firstLine.job_type,
+      payment_status: firstLine.payment_status || 'Unpaid',
+      lineItems: data.map(function(row){ return { line_no: row.line_no, desc: row.description, amt: row.amount, id: row.id }; })
+    };
+  } else {
+    var jr = jobsLite.find(function(j){ return j.job_no === jobNo && (j.revision||'') === (revision||''); });
+    updated = { key: key, job_no: jobNo, revision: revision, client_id: null, job_type: jr ? jr.job_type : null, payment_status: 'Unpaid', lineItems: [] };
+  }
+  updated.invoiceNo = invoiceNoMap[key] || null;
+
+  var idx = invJobs.findIndex(function(j){ return j.key === key; });
+  if (idx > -1) invJobs[idx] = updated; else invJobs.push(updated);
+
+  updateInvStats();
+  var oldCard = document.getElementById('icard-' + key);
+  if (oldCard && oldCard.parentNode) oldCard.parentNode.replaceChild(buildInvoiceCard(updated), oldCard);
+  else renderInvoicing(); // card isn't in the current filter/search view — fall back to a full re-render
+
+  return updated;
 }
 
 function makeInvRow(jobId, desc, amt, lineId, disabled) {
@@ -233,10 +275,12 @@ function doSaveInv(job) {
   toast('Saving…', 'ok');
   saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid').then(function() {
     toast('Saved', 'ok');
-    // Reloads rather than just patching in place — a brand-new line item was
-    // just inserted with a real row id, and the DOM's dataset.lineId needs to
-    // pick that up or the next Save would insert duplicates instead of updating.
-    loadInvoicingPage();
+    // Only this card's DOM gets swapped — a brand-new line item was just
+    // inserted with a real row id, and the DOM's dataset.lineId needs to pick
+    // that up (or the next Save would insert duplicates), but a full page
+    // reload was also wiping whatever anyone was mid-typing into every other
+    // card on the page.
+    return refreshOneInvoiceJob(job.job_no, job.revision);
   }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
@@ -251,11 +295,12 @@ async function doGenerateInv(job) {
     // invoice_data row yet — persist first, since Send only ever UPDATEs that
     // row's payment_status and would otherwise silently match nothing.
     await saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid');
+    var updatedJob = await refreshOneInvoiceJob(job.job_no, job.revision);
     var invNo = await getNextInvoiceNo(resolved.client.code || '00');
-    job._pendingInvNo   = invNo;
-    job._pendingItems   = items;
-    job._pendingClient  = resolved.client;
-    job._pendingInvDate = new Date();
+    updatedJob._pendingInvNo   = invNo;
+    updatedJob._pendingItems   = items;
+    updatedJob._pendingClient  = resolved.client;
+    updatedJob._pendingInvDate = new Date();
     toast('Invoice ' + invNo + ' ready — click Send to email', 'ok');
   } catch (err) {
     toast('Error: ' + err.message, 'err');
@@ -310,12 +355,12 @@ async function doSendInv(job, btnEl) {
       .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1);
     if (updErr) throw updErr;
 
-    job.payment_status = 'Invoiced';
-    job.invoiceNo = invNo;
     invoiceNoMap[job.key] = invNo;
-    delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate;
     toast('Invoice ' + invNo + ' sent to ' + client.email_to, 'ok');
-    updateInvStats(); renderInvoicing(); // re-render rebuilds the button, so no need to restore origLabel
+    // Only this card's DOM gets swapped (rebuilds the button, so no need to
+    // restore origLabel) — same reasoning as Save: a full re-render would
+    // wipe anything mid-typing in every other card.
+    await refreshOneInvoiceJob(job.job_no, job.revision);
   } catch (err) {
     toast('Send failed: ' + err.message, 'err');
     if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = origLabel; }
@@ -333,9 +378,8 @@ async function doMarkPaid(job) {
       .eq('job_no', job.job_no).eq('revision', job.revision || '');
     if (logErr) throw logErr;
 
-    job.payment_status = 'Paid';
     toast('Marked as Paid', 'ok');
-    renderInvoicing();
+    await refreshOneInvoiceJob(job.job_no, job.revision);
 
     if (confirm('Also mark this job as Completed?')) {
       await completeJobAndCreatePayouts(job.job_no, job.revision);
