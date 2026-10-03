@@ -31,6 +31,15 @@ async function loadCompletedDates() {
   (data || []).forEach(function(row){ completedDateMap[row.job_id] = row.changed_at.slice(0,10); }); // later rows win = most recent completion
 }
 
+// Falls back to the issued date for a Completed job with no job_history
+// record — jobs finished before that trigger existed have no real completed
+// date on file, and the issued date is the closest thing to one that exists.
+function effectiveCompletedDate(job) {
+  if (completedDateMap[job.id]) return completedDateMap[job.id];
+  if (job.job_progress === 'Completed') return job.issued_date || null;
+  return null;
+}
+
 // ════════════════════════════════════════════════
 //  RENDER
 // ════════════════════════════════════════════════
@@ -72,7 +81,7 @@ function renderVault() {
     if (client !== 'all' && j.client_name !== client) return false;
     if (bookFrom && (!j.booking_date || j.booking_date < bookFrom)) return false;
     if (bookTo   && (!j.booking_date || j.booking_date > bookTo))   return false;
-    var comp = completedDateMap[j.id];
+    var comp = effectiveCompletedDate(j);
     if (compFrom && (!comp || comp < compFrom)) return false;
     if (compTo   && (!comp || comp > compTo))   return false;
     if (q) {
@@ -88,7 +97,7 @@ function renderVault() {
   tbody.innerHTML = filtered.map(function(job) {
     var due = job.due_date ? new Date(job.due_date).toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
     var booked = job.booking_date ? new Date(job.booking_date).toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
-    var comp = completedDateMap[job.id];
+    var comp = effectiveCompletedDate(job);
     var compStr = comp ? new Date(comp).toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
     return '<tr class="job-row" data-id="'+job.id+'">' +
       '<td class="td-mono" style="font-weight:700">'+esc(job.job_no)+'</td>' +
