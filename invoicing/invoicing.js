@@ -3,6 +3,7 @@
 // ════════════════════════════════════════════════
 var invJobs = [], jobsLite = [], clients = [];
 var invFilter = 'all';
+var invoiceNoMap = {}; // "jobNo||revision" -> most recent invoice_no, from invoice_log
 
 // ════════════════════════════════════════════════
 //  DATA
@@ -45,6 +46,7 @@ async function loadInvoiceJobs() {
 
   invJobs = Object.values(jobMap).map(function(j) {
     j.lineItems.sort(function(a,b){ return a.line_no - b.line_no; });
+    j.invoiceNo = invoiceNoMap[j.key] || null;
     return j;
   });
   return invJobs;
@@ -55,6 +57,19 @@ async function loadJobsLite() {
   if (error) throw error;
   jobsLite = data || [];
   return jobsLite;
+}
+
+// The invoice number only ever lives in invoice_log (doSendInv writes it there),
+// and was never read back — so once sent, it was only ever visible in that
+// moment's toast, never again on the page itself.
+async function loadInvoiceLog() {
+  var { data, error } = await sb.from('invoice_log').select('job_no,revision,invoice_no,date').order('date');
+  if (error) throw error;
+  invoiceNoMap = {};
+  (data || []).forEach(function(row) {
+    invoiceNoMap[row.job_no + '||' + (row.revision || '')] = row.invoice_no; // later rows (by date) win
+  });
+  return invoiceNoMap;
 }
 
 async function saveInvoiceLines(jobNo, revision, lineItems, paymentStatus) {
@@ -102,9 +117,10 @@ function resolveInvoiceClient(invJob) {
 // ════════════════════════════════════════════════
 function loadInvoicingPage() {
   document.getElementById('inv-container').innerHTML = '<div class="empty"><span class="empty-ico">&#8987;</span><p class="empty-title">Loading…</p></div>';
-  // loadInvoiceJobs() merges in Invoicing-stage jobs from jobsLite, so that
-  // has to be loaded first rather than in parallel with it.
-  Promise.all([loadJobsLite(), loadClients()]).then(function(results) {
+  // loadInvoiceJobs() merges in Invoicing-stage jobs from jobsLite and invoice
+  // numbers from invoiceNoMap, so both have to be loaded first rather than in
+  // parallel with it.
+  Promise.all([loadJobsLite(), loadClients(), loadInvoiceLog()]).then(function(results) {
     clients = results[1];
     return loadInvoiceJobs();
   }).then(function() {
@@ -148,6 +164,7 @@ function renderInvoicing() {
     hdr.innerHTML = '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
       (job.revision ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.revision)+'</span>' : '') +
       '<span style="font-size:11px;color:var(--text-soft)">'+esc(job.job_type||'')+'</span>' +
+      (job.invoiceNo ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--invoicing-txt)">'+esc(job.invoiceNo)+'</span>' : '') +
       '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.payment_status)+'</span></span>';
     card.appendChild(hdr);
     var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
@@ -281,6 +298,8 @@ async function doSendInv(job, btnEl) {
     if (updErr) throw updErr;
 
     job.payment_status = 'Invoiced';
+    job.invoiceNo = invNo;
+    invoiceNoMap[job.key] = invNo;
     delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate;
     toast('Invoice ' + invNo + ' sent to ' + client.email_to, 'ok');
     updateInvStats(); renderInvoicing(); // re-render rebuilds the button, so no need to restore origLabel
