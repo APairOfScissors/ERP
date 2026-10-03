@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="p3">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Vault — LDW Engineering ERP</title>
+<script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/app.css">
+<style>
+.vault-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.vault-filters select,.vault-filters input[type=date]{padding:7px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--surface2);color:var(--text);font-family:'Inter',sans-serif;font-size:12.5px}
+.vf-group{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-soft);font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spin"></div>
+  <div class="loading-text">Initialising…</div>
+</div>
+
+<div class="mobile-topbar" id="mobile-topbar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div id="app-shell">
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page active" id="page-vault">
+      <div class="ph"><h1 class="ph-title">Job <span>Vault</span></h1><span class="ph-sub" id="vault-sub">Every job, ever</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-vault">&#x21BA; Refresh</button></div></div>
+
+      <div class="toolbar">
+        <div class="search-wrap"><span class="search-ico">&#128269;</span><input type="text" id="vault-search" placeholder="Search job, client, address…"></div>
+      </div>
+      <div class="vault-filters">
+        <select id="vf-stage"><option value="all">All stages</option></select>
+        <select id="vf-client"><option value="all">All clients</option></select>
+        <span class="vf-group">Booked <input type="date" id="vf-book-from"> &rarr; <input type="date" id="vf-book-to"></span>
+        <span class="vf-group">Completed <input type="date" id="vf-comp-from"> &rarr; <input type="date" id="vf-comp-to"></span>
+        <button class="btn btn-ghost btn-sm" id="vf-clear">Clear filters</button>
+      </div>
+
+      <div class="table-wrap">
+        <table><thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>Address</th><th>Job Type</th><th>Progress</th><th>Booked</th><th>Completed</th><th>Due</th></tr></thead>
+        <tbody id="vault-body"></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="../shared/core.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="job-vault.js"></script>
+</body>
+</html>

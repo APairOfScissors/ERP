@@ -32,6 +32,7 @@
             <button class="vt-btn active" id="vt-kanban">Kanban</button>
             <button class="vt-btn" id="vt-table">Table</button>
           </div>
+          <button class="btn btn-ghost" id="btn-select-mode">&#9745; Select</button>
           <a class="btn btn-primary" href="../new-job/">+ New Job</a>
         </div>
       </div>
@@ -49,10 +50,14 @@
         <button class="filter-chip" id="sf-intcheck">Int Checking</button>
         <button class="filter-chip" id="sf-extcheck">Ext Checking</button>
         <button class="filter-chip" id="sf-invoicing">Invoicing</button>
-        <button class="filter-chip" id="sf-completed">Completed</button>
-        <button class="filter-chip" id="sf-cancelled">Cancelled</button>
         <div class="ml-auto"></div>
         <button class="btn btn-ghost btn-sm" id="btn-refresh-board">&#x21BA; Refresh</button>
+      </div>
+      <div class="bulk-bar" id="bulk-bar" style="display:none">
+        <span id="bulk-count">0 selected</span>
+        <select id="bulk-stage-select"></select>
+        <button class="btn btn-primary btn-sm" id="bulk-apply">Apply</button>
+        <button class="btn btn-ghost btn-sm" id="bulk-clear">Clear</button>
       </div>
       <div id="view-kanban">
         <div class="kanban">
@@ -61,12 +66,10 @@
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--intcheck-txt)">Int Checking</span><span class="stage-bar intcheck"></span><span class="kanban-count" id="kc-intcheck">0</span></div><div class="kanban-body" id="kb-intcheck"></div></div>
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--extcheck-txt)">Ext Checking</span><span class="stage-bar extcheck"></span><span class="kanban-count" id="kc-extcheck">0</span></div><div class="kanban-body" id="kb-extcheck"></div></div>
           <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--invoicing-txt)">Invoicing</span><span class="stage-bar invoicing"></span><span class="kanban-count" id="kc-invoicing">0</span></div><div class="kanban-body" id="kb-invoicing"></div></div>
-          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--complete-txt)">Completed</span><span class="stage-bar complete"></span><span class="kanban-count" id="kc-complete">0</span></div><div class="kanban-body" id="kb-complete"></div></div>
-          <div class="kanban-col"><div class="kanban-head"><span class="stage-label" style="color:var(--cancelled-txt)">Cancelled</span><span class="stage-bar cancelled"></span><span class="kanban-count" id="kc-cancelled">0</span></div><div class="kanban-body" id="kb-cancelled"></div></div>
         </div>
       </div>
       <div id="view-table" style="display:none">
-        <div class="table-wrap"><table><thead><tr><th>Job No</th><th>Rev</th><th>Client</th><th>Address</th><th>Job Type</th><th>Team</th><th>Progress</th><th>Status</th><th>Due</th></tr></thead><tbody id="table-body"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th class="sel-check"><input type="checkbox" id="th-select-all"></th><th>Job No</th><th>Rev</th><th>Client</th><th>Address</th><th>Job Type</th><th>Team</th><th>Progress</th><th>Status</th><th>Due</th></tr></thead><tbody id="table-body"></tbody></table></div>
       </div>
     </div>
   </main>

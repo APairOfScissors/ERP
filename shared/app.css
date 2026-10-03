@@ -196,8 +196,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stage-bar.cancelled{background:var(--cancelled-txt)}
 .kanban-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);background:var(--bg-mid);padding:1px 6px;border-radius:10px;border:1px solid var(--rule)}
 .kanban-body{padding:10px;display:flex;flex-direction:column;gap:7px;min-height:80px}
-.jcard{display:block;text-decoration:none;color:inherit;background:var(--bg-mid);border:1px solid var(--rule);border-radius:7px;padding:11px 12px;cursor:pointer;transition:border-color 0.13s,transform 0.13s}
+.jcard{display:block;position:relative;text-decoration:none;color:inherit;background:var(--bg-mid);border:1px solid var(--rule);border-radius:7px;padding:11px 12px;cursor:pointer;transition:border-color 0.13s,transform 0.13s}
 .jcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.jcard.selected{border-color:var(--accent);outline:2px solid var(--accent);outline-offset:-1px}
+
+/* ---------- Bulk select (Board) ---------- */
+.sel-check{display:none}
+th.sel-check,td.sel-check{width:30px;text-align:center}
+.select-on th.sel-check,.select-on td.sel-check{display:table-cell}
+.select-on span.sel-check{display:inline-flex}
+.jcard span.sel-check{position:absolute;top:9px;right:9px}
+tr.job-row.selected td{background:var(--accent-glow,var(--surface2))}
+#btn-select-mode.active{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
+.bulk-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--rule);border-radius:8px;margin-bottom:14px;font-size:13px;font-family:'DM Mono',monospace}
+.bulk-bar select{padding:5px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif;font-size:13px}
 .jcard-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px}
 .jcard-jobno{font-family:'DM Mono',monospace;font-size:12px;font-weight:500}
 .jcard-rev{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 5px;border-radius:3px}

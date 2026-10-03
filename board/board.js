@@ -3,12 +3,19 @@
 // ════════════════════════════════════════════════
 var jobs = [];
 var curView = 'kanban', stageFilter = 'all';
+var selectMode = false;
+var selectedIds = new Set();
+var lastFiltered = [];
 
 // ════════════════════════════════════════════════
 //  DATA
 // ════════════════════════════════════════════════
+// Completed/Cancelled jobs are done — they live in the Job Vault instead, so
+// the Board's day-to-day query only ever has to scan jobs still in motion.
 async function loadJobs() {
-  var { data, error } = await sb.from('jobs').select('*').order('booking_date', { ascending: false });
+  var { data, error } = await sb.from('jobs').select('*')
+    .not('job_progress', 'in', '("Completed","Cancelled")')
+    .order('booking_date', { ascending: false });
   if (error) throw error;
   jobs = data || [];
   return jobs;
@@ -19,24 +26,70 @@ async function loadJobs() {
 // ════════════════════════════════════════════════
 function loadBoard() {
   document.getElementById('board-sub').textContent = 'Loading…';
+  clearSelection();
   loadJobs().then(function() {
     renderBoard(); updateBoardStats();
-    var active = jobs.filter(function(j){ return j.job_progress !== 'Completed'; });
-    document.getElementById('board-sub').textContent = jobs.length + ' jobs total';
-    setNavBadge('nb-board', active.length);
+    document.getElementById('board-sub').textContent = jobs.length + ' active jobs';
+    setNavBadge('nb-board', jobs.length);
     setFootStatus('Updated ' + new Date().toLocaleTimeString());
   }).catch(function(err){ toast('Failed to load: ' + err.message, 'err'); });
 }
 
 function updateBoardStats() {
   var today  = new Date(); today.setHours(0,0,0,0);
-  var active = jobs.filter(function(j){ return j.job_progress !== 'Completed' && j.job_progress !== 'Cancelled'; });
-  var overdue= active.filter(function(j){ return j.due_date && new Date(j.due_date) < today; });
-  document.getElementById('st-total').textContent     = active.length;
+  var overdue= jobs.filter(function(j){ return j.due_date && new Date(j.due_date) < today; });
+  document.getElementById('st-total').textContent     = jobs.length;
   document.getElementById('st-inprog').textContent    = jobs.filter(function(j){ return j.job_progress === 'In Progress'; }).length;
   document.getElementById('st-overdue').textContent   = overdue.length;
   document.getElementById('st-invoicing').textContent = jobs.filter(function(j){ return j.job_progress === 'Invoicing'; }).length;
   setNavBadge('nb-inv', jobs.filter(function(j){ return j.job_progress === 'Invoicing'; }).length);
+}
+
+// ════════════════════════════════════════════════
+//  BULK SELECT
+// ════════════════════════════════════════════════
+function setSelectMode(on) {
+  selectMode = on;
+  document.getElementById('page-board').classList.toggle('select-on', on);
+  document.getElementById('btn-select-mode').classList.toggle('active', on);
+  if (!on) clearSelection(); else renderBoard();
+}
+
+function toggleJobSelection(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  renderBoard();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  updateBulkBar();
+}
+
+function selectAllVisible(checked) {
+  lastFiltered.forEach(function(j){ if (checked) selectedIds.add(j.id); else selectedIds.delete(j.id); });
+  renderBoard();
+}
+
+function updateBulkBar() {
+  var bar = document.getElementById('bulk-bar');
+  var n = selectedIds.size;
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('bulk-count').textContent = n + ' selected';
+}
+
+function applyBulkStage() {
+  var stage = document.getElementById('bulk-stage-select').value;
+  var ids = Array.from(selectedIds);
+  if (!ids.length) return;
+  if (!confirm('Set ' + ids.length + ' job' + (ids.length > 1 ? 's' : '') + ' to "' + stage + '"?')) return;
+  var btn = document.getElementById('bulk-apply');
+  btn.disabled = true;
+  sb.from('jobs').update({ job_progress: stage }).in('id', ids).then(function(res) {
+    btn.disabled = false;
+    if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+    toast(ids.length + ' job' + (ids.length > 1 ? 's' : '') + ' set to "' + stage + '"', 'ok');
+    loadBoard();
+  });
 }
 
 function setView(v) {
@@ -63,12 +116,14 @@ function renderBoard() {
            (j.client_name||'').toLowerCase().indexOf(q) > -1 ||
            (j.address||'').toLowerCase().indexOf(q) > -1;
   });
+  lastFiltered = filtered;
   if (curView === 'kanban') renderKanban(filtered); else renderTable(filtered);
+  updateBulkBar();
 }
 
 function renderKanban(filtered) {
-  var stages = ['Booked','In Progress','Int Checking','Ext Checking','Invoicing','Completed','Cancelled'];
-  var ids    = ['booked','inprog','intcheck','extcheck','invoicing','complete','cancelled'];
+  var stages = ['Booked','In Progress','Int Checking','Ext Checking','Invoicing'];
+  var ids    = ['booked','inprog','intcheck','extcheck','invoicing'];
   stages.forEach(function(stage, si) {
     var col = filtered.filter(function(j){ return j.job_progress === stage; });
     document.getElementById('kc-' + ids[si]).textContent = col.length;
@@ -85,7 +140,9 @@ function jobCardHTML(job) {
   var dueStr  = due ? due.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}) : '—';
   var persons = [[job.eng,'E'],[job.drafter,'D'],[job.sv_drafting,'SVD'],[job.checker,'C']].filter(function(p){ return p[0]; });
   var badges  = persons.map(function(p){ return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>'; }).join('');
-  return '<a class="jcard" href="../job/?id='+job.id+'">' +
+  var selected = selectedIds.has(job.id);
+  return '<a class="jcard'+(selectMode && selected ? ' selected' : '')+'" href="../job/?id='+job.id+'" data-id="'+job.id+'">' +
+    '<span class="sel-check"><input type="checkbox" tabindex="-1"'+(selected?' checked':'')+'></span>' +
     '<div class="jcard-top"><span class="jcard-jobno">'+esc(job.job_no)+'</span>'+(job.revision?'<span class="jcard-rev">'+esc(job.revision)+'</span>':'')+'</div>'+
     '<div class="jcard-client">'+esc(shortClient(job.client_name||''))+'</div>'+
     '<div class="jcard-type">'+esc(job.job_type||'—')+'</div>'+
@@ -95,7 +152,7 @@ function jobCardHTML(job) {
 
 function renderTable(filtered) {
   var tbody = document.getElementById('table-body');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-soft)">No jobs</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--text-soft)">No jobs</td></tr>'; return; }
   var today = new Date(); today.setHours(0,0,0,0);
   tbody.innerHTML = filtered.map(function(job) {
     var due     = job.due_date ? new Date(job.due_date) : null;
@@ -103,7 +160,9 @@ function renderTable(filtered) {
     var dueStr  = due ? due.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
     var persons = [[job.eng,'E'],[job.drafter,'D'],[job.sv_drafting,'SVD'],[job.checker,'C']].filter(function(p){ return p[0]; });
     var badges  = persons.map(function(p){ return '<span class="role-badge"><span class="role-tag">'+p[1]+'</span> '+esc(p[0])+'</span>'; }).join('');
-    return '<tr class="job-row" data-id="'+job.id+'">' +
+    var selected = selectedIds.has(job.id);
+    return '<tr class="job-row'+(selectMode && selected ? ' selected' : '')+'" data-id="'+job.id+'">' +
+      '<td class="sel-check"><input type="checkbox" tabindex="-1"'+(selected?' checked':'')+'></td>' +
       '<td class="td-mono" style="font-weight:700">'+esc(job.job_no)+'</td>' +
       '<td class="td-mono">'+esc(job.revision||'—')+'</td>' +
       '<td style="font-weight:500">'+esc(shortClient(job.client_name||''))+'</td>' +
@@ -134,14 +193,30 @@ function renderTable(filtered) {
   document.getElementById('sf-intcheck').addEventListener('click',  function(){ setStageFilter('Int Checking',this); });
   document.getElementById('sf-extcheck').addEventListener('click',  function(){ setStageFilter('Ext Checking',this); });
   document.getElementById('sf-invoicing').addEventListener('click', function(){ setStageFilter('Invoicing',this); });
-  document.getElementById('sf-completed').addEventListener('click', function(){ setStageFilter('Completed',this); });
-  document.getElementById('sf-cancelled').addEventListener('click', function(){ setStageFilter('Cancelled',this); });
   document.getElementById('btn-refresh-board').addEventListener('click', loadBoard);
   document.getElementById('board-search').addEventListener('input', renderBoard);
 
   document.getElementById('view-table').addEventListener('click', function(e){
     var row = e.target.closest('[data-id]');
-    if (row) location.href = '../job/?id=' + row.getAttribute('data-id');
+    if (!row) return;
+    if (selectMode) { toggleJobSelection(parseInt(row.getAttribute('data-id'))); return; }
+    location.href = '../job/?id=' + row.getAttribute('data-id');
+  });
+  document.getElementById('view-kanban').addEventListener('click', function(e){
+    if (!selectMode) return;
+    var card = e.target.closest('.jcard');
+    if (!card) return;
+    e.preventDefault();
+    toggleJobSelection(parseInt(card.getAttribute('data-id')));
+  });
+
+  document.getElementById('btn-select-mode').addEventListener('click', function(){ setSelectMode(!selectMode); });
+  document.getElementById('th-select-all').addEventListener('change', function(){ selectAllVisible(this.checked); });
+  document.getElementById('bulk-clear').addEventListener('click', function(){ clearSelection(); renderBoard(); });
+  document.getElementById('bulk-apply').addEventListener('click', applyBulkStage);
+  JOB_STAGES.forEach(function(s){
+    var o = document.createElement('option'); o.value = s; o.textContent = s;
+    document.getElementById('bulk-stage-select').appendChild(o);
   });
 
   document.getElementById('loading-overlay').style.display = 'none';

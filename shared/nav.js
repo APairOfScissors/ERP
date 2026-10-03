@@ -6,6 +6,7 @@ var NAV_ITEMS = [
   { key: 'board',    label: 'Job Board',  href: 'board/',    section: 'Jobs',    badge: 'nb-board' },
   { key: 'newjob',   label: 'New Job',    href: 'new-job/',  section: null },
   { key: 'byeng',    label: 'By Engineer',href: 'my-jobs/',  section: null },
+  { key: 'vault',    label: 'Job Vault',  href: 'job-vault/',section: null },
   { key: 'invoicing',label: 'Invoicing',  href: 'invoicing/',section: 'Finance', badge: 'nb-inv' },
   { key: 'reports',  label: 'Reports',    href: 'reports/',  section: 'Admin' },
   { key: 'payout',   label: 'Payout',     href: 'payout/',   section: 'Admin' },
