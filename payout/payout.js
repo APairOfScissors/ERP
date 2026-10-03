@@ -1,21 +1,37 @@
 // ════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════
-var cnRows = [], lmRows = [];
+var allRows = [];     // every engineer_payout row, tagged .person
+var jobsLite = [];    // job_no/revision -> eng/drafter/sv_drafting, for the E/D/SV columns
+var personFilter = 'all'; // 'all' | 'CN' | 'LM'
 
 // ════════════════════════════════════════════════
 //  DATA
 // ════════════════════════════════════════════════
 async function loadPayoutData() {
-  var { data, error } = await sb.from('engineer_payout').select('*').order('id');
-  if (error) throw error;
-  cnRows = (data || []).filter(function(r){ return r.person === 'CN'; });
-  lmRows = (data || []).filter(function(r){ return r.person === 'LM'; });
+  var [payoutRes, jobsRes] = await Promise.all([
+    sb.from('engineer_payout').select('*').order('id'),
+    sb.from('jobs').select('job_no,revision,eng,drafter,sv_drafting')
+  ]);
+  if (payoutRes.error) throw payoutRes.error;
+  if (jobsRes.error) throw jobsRes.error;
+  allRows  = payoutRes.data || [];
+  jobsLite = jobsRes.data || [];
 }
 
 async function updatePayoutRow(id, patch) {
   var { error } = await sb.from('engineer_payout').update(patch).eq('id', id);
   if (error) throw error;
+}
+
+// Which of this row's person's roles on the job it's actually paying for —
+// a payout row only ever says "CN" or "LM", not which hat they wore, so this
+// cross-references the job itself to show it at a glance instead of needing
+// to go open the job to check.
+function jobRoleFlags(row) {
+  var j = jobsLite.find(function(x){ return x.job_no === row.job_no && (x.revision||'') === (row.revision||''); });
+  if (!j) return { eng: false, drafter: false, sv: false };
+  return { eng: j.eng === row.person, drafter: j.drafter === row.person, sv: j.sv_drafting === row.person };
 }
 
 // ════════════════════════════════════════════════
@@ -26,61 +42,50 @@ function loadPayoutPage() {
 }
 
 function renderPayout() {
-  renderCN(); renderLM();
-  var cnUnpaidAud = cnRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.fee||0); }, 0);
-  var cnUnpaidRp  = cnRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
-  var lmUnpaidRp  = lmRows.filter(function(r){ return r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  var rows = personFilter === 'all' ? allRows : allRows.filter(function(r){ return r.person === personFilter; });
+  var unpaid = rows.filter(function(r){ return r.paid !== 'Paid'; }).sort(function(a,b){ return (a.job_no||'').localeCompare(b.job_no||''); });
+  var paid   = rows.filter(function(r){ return r.paid === 'Paid'; }).sort(function(a,b){ return (a.job_no||'').localeCompare(b.job_no||''); });
+
+  renderRows('payout-unpaid-body', unpaid);
+  renderRows('payout-paid-body', paid);
+  document.getElementById('payout-paid-count').textContent = '(' + paid.length + ')';
+
+  var cnUnpaidAud = allRows.filter(function(r){ return r.person === 'CN' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.fee||0); }, 0);
+  var cnUnpaidRp  = allRows.filter(function(r){ return r.person === 'CN' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  var lmUnpaidRp  = allRows.filter(function(r){ return r.person === 'LM' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
   document.getElementById('cn-unpaid-aud').textContent = 'A$ ' + cnUnpaidAud.toFixed(2);
   document.getElementById('cn-unpaid-rp').textContent  = 'Rp ' + Math.round(cnUnpaidRp).toLocaleString('id-ID');
   document.getElementById('lm-unpaid-rp').textContent  = 'Rp ' + Math.round(lmUnpaidRp).toLocaleString('id-ID');
-  document.getElementById('lm-total-jobs').textContent = lmRows.length;
+  document.getElementById('lm-total-jobs').textContent = allRows.filter(function(r){ return r.person === 'LM'; }).length;
 }
 
-function renderCN() {
-  var tbody = document.getElementById('cn-tbody'); tbody.innerHTML = '';
-  var totalAud = 0, totalRp = 0;
-  cnRows.forEach(function(r, i) {
+function roleCell(flag) {
+  return flag ? '<span style="color:var(--invoicing-txt);font-weight:600">Yes</span>' : '<span style="color:var(--text-soft)">No</span>';
+}
+
+function renderRows(tbodyId, rows) {
+  var tbody = document.getElementById(tbodyId); tbody.innerHTML = '';
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-soft);font-size:12px">— none —</td></tr>'; return; }
+  rows.forEach(function(r, i) {
     var isPaid = r.paid === 'Paid';
-    if (!isPaid) { totalAud += r.fee || 0; totalRp += r.conv || 0; }
+    var roles  = jobRoleFlags(r);
+    var amountHtml = r.person === 'CN'
+      ? '<div style="font-family:DM Mono,monospace;font-size:11px;font-weight:600">A$ '+((r.fee||0).toFixed(2))+'</div><div style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rp '+Math.round(r.conv||0).toLocaleString('id-ID')+'</div>'
+      : '<div style="font-family:DM Mono,monospace;font-size:11px;font-weight:600">Rp '+Math.round(r.conv||0).toLocaleString('id-ID')+'</div>';
     var tr = document.createElement('tr');
     if (i % 2 === 0) tr.style.background = 'var(--surface2)';
     tr.innerHTML =
       '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
       '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
-      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
-      '<td class="hide-mobile" style="text-align:center;font-size:10px">'+esc(r.sv_draft||'—')+'</td>' +
+      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+' <span style="color:var(--text-soft);font-size:10px">'+esc(r.person)+'</span></td>' +
+      '<td style="text-align:center;font-size:11px">'+roleCell(roles.eng)+'</td>' +
+      '<td style="text-align:center;font-size:11px">'+roleCell(roles.drafter)+'</td>' +
+      '<td style="text-align:center;font-size:11px">'+roleCell(roles.sv)+'</td>' +
       '<td class="hide-mobile" style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+((r.fee||0).toFixed(2))+'</td>' +
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px">'+Math.round(r.conv||0).toLocaleString('id-ID')+'</td>' +
-      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="cn" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
+      '<td style="text-align:right">'+amountHtml+'</td>' +
+      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
     tbody.appendChild(tr);
   });
-  document.getElementById('cn-total-aud').textContent = totalAud.toFixed(2);
-  document.getElementById('cn-total-rp').textContent  = Math.round(totalRp).toLocaleString('id-ID');
-  document.getElementById('cn-unpaid-aud').textContent= 'A$ ' + totalAud.toFixed(2);
-  document.getElementById('cn-unpaid-rp').textContent = 'Rp ' + Math.round(totalRp).toLocaleString('id-ID');
-}
-
-function renderLM() {
-  var tbody = document.getElementById('lm-tbody'); tbody.innerHTML = '';
-  var totalRp = 0;
-  lmRows.forEach(function(r, i) {
-    var isPaid = r.paid === 'Paid';
-    if (!isPaid) totalRp += r.conv || 0;
-    var tr = document.createElement('tr');
-    if (i % 2 === 0) tr.style.background = 'var(--surface2)';
-    tr.innerHTML =
-      '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
-      '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
-      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
-      '<td class="hide-mobile" style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
-      '<td style="text-align:right;font-family:DM Mono,monospace;font-size:11px;font-weight:600">'+Math.round(r.conv||0).toLocaleString('id-ID')+'</td>' +
-      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-person="lm" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
-    tbody.appendChild(tr);
-  });
-  document.getElementById('lm-total-rp').textContent  = Math.round(totalRp).toLocaleString('id-ID');
-  document.getElementById('lm-unpaid-rp').textContent = 'Rp ' + Math.round(totalRp).toLocaleString('id-ID');
-  document.getElementById('lm-total-jobs').textContent= lmRows.length;
 }
 
 // ════════════════════════════════════════════════
@@ -90,17 +95,16 @@ function renderLM() {
 //  there, since the app has no other UI for setting fee/conv and it
 //  previously had to be edited straight in Supabase.
 // ════════════════════════════════════════════════
-var editingRow = null; // { person: 'cn'|'lm', row }
+var editingRow = null;
 
-function openPayoutAmountModal(person, id) {
-  var arr = person === 'cn' ? cnRows : lmRows;
-  var r   = arr.find(function(x){ return x.id === id; }); if (!r) return;
-  editingRow = { person: person, row: r };
+function openPayoutAmountModal(id) {
+  var r = allRows.find(function(x){ return x.id === id; }); if (!r) return;
+  editingRow = r;
 
   var targetPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
-  document.getElementById('pm-title').textContent = r.job_no + ' — ' + (person === 'cn' ? 'CN' : 'LM');
+  document.getElementById('pm-title').textContent = r.job_no + ' — ' + r.person;
   document.getElementById('pm-save').textContent  = 'Save & Mark ' + (targetPaid === 'Paid' ? 'Paid' : 'Unpaid');
-  document.getElementById('pm-fee-field').style.display = person === 'cn' ? '' : 'none';
+  document.getElementById('pm-fee-field').style.display = r.person === 'CN' ? '' : 'none';
   document.getElementById('pm-fee').value = r.fee != null ? r.fee : '';
   document.getElementById('pm-rp').value  = r.conv != null ? r.conv : '';
   document.getElementById('modal-payout-amt').classList.add('open');
@@ -108,10 +112,10 @@ function openPayoutAmountModal(person, id) {
 
 function savePayoutAmount() {
   if (!editingRow) return;
-  var person = editingRow.person, r = editingRow.row;
+  var r = editingRow;
   var newPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
   var patch = { paid: newPaid, conv: parseFloat(document.getElementById('pm-rp').value) || 0 };
-  if (person === 'cn') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
+  if (r.person === 'CN') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
 
   var btn = document.getElementById('pm-save');
   btn.disabled = true;
@@ -140,17 +144,28 @@ function savePayoutAmount() {
     // Only unpaid rows — a row already marked Paid has a real, saved amount
     // that shouldn't be silently guessed at from whatever rate happens to be
     // in this field right now.
-    cnRows.forEach(function(r){ if (r.paid !== 'Paid') r.conv = Math.round((r.fee||0) * rate); });
-    renderCN();
+    allRows.forEach(function(r){ if (r.person === 'CN' && r.paid !== 'Paid') r.conv = Math.round((r.fee||0) * rate); });
+    renderPayout();
   });
+
+  document.getElementById('payout-person-toggle').addEventListener('click', function(e){
+    var btn = e.target.closest('.vt-btn'); if (!btn) return;
+    personFilter = btn.getAttribute('data-person');
+    this.querySelectorAll('.vt-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderPayout();
+  });
+
   document.getElementById('page-payout').addEventListener('click', function(e){
-    var btn = e.target.closest('[data-person]');
-    if (btn) openPayoutAmountModal(btn.getAttribute('data-person'), parseInt(btn.getAttribute('data-id')));
+    var btn = e.target.closest('[data-id]');
+    if (btn && btn.classList.contains('paid-toggle-btn')) openPayoutAmountModal(parseInt(btn.getAttribute('data-id')));
   });
   document.getElementById('pm-close').addEventListener('click',  function(){ closeModal('modal-payout-amt'); });
   document.getElementById('pm-cancel').addEventListener('click', function(){ closeModal('modal-payout-amt'); });
   document.getElementById('pm-save').addEventListener('click',   savePayoutAmount);
   document.getElementById('modal-payout-amt').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('open'); });
+
+  makeCollapsible(document.getElementById('payout-paid-head'), document.getElementById('payout-paid-panel-body'), false);
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

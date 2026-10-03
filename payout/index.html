@@ -32,49 +32,44 @@
         <div class="stat-card"><div class="stat-lbl">LM Unpaid (Rp)</div><div class="stat-val blue" id="lm-unpaid-rp">—</div></div>
         <div class="stat-card"><div class="stat-lbl">LM Total Jobs</div><div class="stat-val" id="lm-total-jobs">—</div></div>
       </div>
-      <div class="payout-grid">
-        <div class="panel">
-          <div class="panel-head" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
-            <div style="display:flex;align-items:center;gap:9px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-              <h2>CN</h2>
-            </div>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">Rate:</span>
-              <input type="number" id="cn-rate" class="rate-input" placeholder="e.g. 16200">
-              <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
+      <div class="panel">
+        <div class="panel-head" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            <h2>Unpaid</h2>
+            <div class="view-toggle" id="payout-person-toggle" style="margin-left:6px">
+              <button class="vt-btn active" data-person="all">All</button>
+              <button class="vt-btn" data-person="CN">CN</button>
+              <button class="vt-btn" data-person="LM">LM</button>
             </div>
           </div>
-          <div class="panel-body">
-          <div class="table-wrap">
-            <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th class="hide-mobile">SV</th><th class="hide-mobile">Note</th><th style="text-align:right">A$</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
-            <tbody id="cn-tbody"></tbody>
-            <tfoot><tr style="background:var(--surface2)">
-              <td colspan="5" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
-              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--inprog-txt);padding:8px 14px" id="cn-total-aud">0.00</td>
-              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="cn-total-rp">0</td>
-              <td></td>
-            </tr></tfoot></table>
-          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">CN Rate:</span>
+            <input type="number" id="cn-rate" class="rate-input" placeholder="e.g. 16200">
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-soft)">Rp/A$</span>
           </div>
         </div>
-        <div class="panel">
-          <div class="panel-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-            <h2>LM</h2>
-          </div>
-          <div class="panel-body">
-          <div class="table-wrap">
-            <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th class="hide-mobile">Note</th><th style="text-align:right">Rp</th><th>Paid</th></tr></thead>
-            <tbody id="lm-tbody"></tbody>
-            <tfoot><tr style="background:var(--surface2)">
-              <td colspan="3" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text-soft);padding:8px 14px;text-align:right">UNPAID</td>
-              <td class="hide-mobile"></td>
-              <td style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--invoicing-txt);padding:8px 14px" id="lm-total-rp">0</td>
-              <td></td>
-            </tr></tfoot></table>
-          </div>
-          </div>
+        <div class="panel-body">
+        <div class="table-wrap">
+          <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th style="text-align:center">E</th><th style="text-align:center">D</th><th style="text-align:center">SV</th><th class="hide-mobile">Note</th><th style="text-align:right">Amount</th><th>Paid</th></tr></thead>
+          <tbody id="payout-unpaid-body"></tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" id="payout-paid-head" style="cursor:pointer">
+          <span class="chevron" style="display:inline-block;font-size:11px;color:var(--text-soft)">&#9662;</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          <h2>Paid <span id="payout-paid-count" style="color:var(--text-soft);font-weight:400">(0)</span></h2>
+        </div>
+        <div class="panel-body" id="payout-paid-panel-body">
+        <div class="table-wrap">
+          <table><thead><tr><th>Job</th><th>Rev</th><th>Client</th><th style="text-align:center">E</th><th style="text-align:center">D</th><th style="text-align:center">SV</th><th class="hide-mobile">Note</th><th style="text-align:right">Amount</th><th>Paid</th></tr></thead>
+          <tbody id="payout-paid-body"></tbody>
+          </table>
+        </div>
         </div>
       </div>
     </div>
@@ -100,6 +95,7 @@
 
 <script src="../shared/core.js"></script>
 <script src="../shared/nav.js"></script>
+<script src="../shared/ui.js"></script>
 <script src="payout.js"></script>
 </body>
 </html>
