@@ -2,6 +2,11 @@
 //  STATE
 // ════════════════════════════════════════════════
 var currentJob = null;
+// A CN/LM login can open this page for their own assigned jobs (RLS already
+// permits updating any field on those rows), but job_history and the OneDrive
+// bits are off-limits to them — clients/job_history are both blocked outright
+// for a person_code account (see sql/restrict-assigned-users.sql).
+var jobIsRestricted = false;
 
 // ════════════════════════════════════════════════
 //  DATA
@@ -72,28 +77,37 @@ function renderJob(job) {
     dtF('ed-issueddate','Issued Date', job.issued_date||'') +
     '</div></div></div>' +
 
+    (jobIsRestricted ? '' :
     '<div class="panel"><div class="panel-head" id="job-history-head" style="cursor:pointer">' +
       '<span class="chevron" style="display:inline-block;font-size:11px;color:var(--text-soft)">&#9662;</span>' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
       '<h2>History</h2></div><div class="panel-body" id="job-history-body">' +
       '<div id="job-history-list" style="font-size:12px;color:var(--text-soft)">Loading…</div>' +
-    '</div></div>' +
+    '</div></div>') +
 
     '<hr class="div">' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
-      '<a class="btn btn-ghost" href="../board/">Cancel</a>' +
+      '<a class="btn btn-ghost" href="'+(jobIsRestricted ? '../my-jobs/' : '../board/')+'">Cancel</a>' +
       '<button class="btn btn-primary" id="job-save">Save Changes</button>' +
     '</div>';
   document.getElementById('job-body').innerHTML = html;
   document.getElementById('job-save').addEventListener('click', saveJobDetail);
-  document.getElementById('job-upload-section').style.display = 'block';
 
   enhanceSelectsIn(document.getElementById('job-body'));
-  makeCollapsible(document.getElementById('job-history-head'), document.getElementById('job-history-body'), false);
 
-  loadJobHistory(job.id).then(renderJobHistory).catch(function(err) {
-    document.getElementById('job-history-list').textContent = 'Could not load history: ' + err.message;
-  });
+  // job_history and the OneDrive upload section are both off-limits to a
+  // restricted login — job_history is admin-only in RLS, and the OneDrive
+  // button/dropzone need the clients table, which is blocked outright for them.
+  if (jobIsRestricted) {
+    document.getElementById('job-upload-section').style.display = 'none';
+    document.getElementById('job-onedrive').style.display = 'none';
+  } else {
+    document.getElementById('job-upload-section').style.display = 'block';
+    makeCollapsible(document.getElementById('job-history-head'), document.getElementById('job-history-body'), false);
+    loadJobHistory(job.id).then(renderJobHistory).catch(function(err) {
+      document.getElementById('job-history-list').textContent = 'Could not load history: ' + err.message;
+    });
+  }
 }
 
 function renderJobHistory(entries) {
@@ -230,13 +244,23 @@ function initJobDropzone() {
 //  BOOT
 // ════════════════════════════════════════════════
 (async function() {
-  initNav('board'); // job detail hangs off the board section
-  var user = await requireAuth();
+  // Needed up front so the sidebar renders the right nav mode — requireAuth()
+  // itself runs after, for the actual session check / redirect guard.
+  var { data: { session } } = await sb.auth.getSession();
+  var restrictedGuess = !!(session && personCodeOf(session.user));
+  initNav('board', { restricted: restrictedGuess }); // job detail hangs off the board section
+
+  var user = await requireAuth({ allowRestricted: true });
   if (!user) return;
   renderUserInfo(user);
+  jobIsRestricted = !!personCodeOf(user);
 
-  document.getElementById('job-onedrive').addEventListener('click', openOneDriveFolder);
-  initJobDropzone();
+  if (jobIsRestricted) {
+    document.getElementById('job-onedrive').style.display = 'none'; // hide before app-shell shows, not after
+  } else {
+    document.getElementById('job-onedrive').addEventListener('click', openOneDriveFolder);
+    initJobDropzone();
+  }
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

@@ -98,7 +98,7 @@ function buildJobRow(job, today) {
 
   var tr = document.createElement('tr');
   tr.innerHTML =
-    '<td class="td-mono" style="font-weight:700">'+esc(job.job_no)+'</td>' +
+    '<td class="td-mono" style="font-weight:700"><a href="../job/?id='+job.id+'" style="color:inherit;text-decoration:none">'+esc(job.job_no)+'</a></td>' +
     '<td class="td-mono">'+esc(job.revision||'—')+'</td>' +
     '<td style="font-weight:500">'+esc(shortClient(job.client_name||''))+'</td>' +
     '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-mid)">'+esc(job.address||'—')+'</td>' +
