@@ -125,6 +125,52 @@ function clearVaultFilters() {
 }
 
 // ════════════════════════════════════════════════
+//  ONEDRIVE BACKFILL
+//  One-time maintenance tool: re-runs createJobFolders() for every job in the
+//  system. It's fully idempotent (ensureFolder only creates what's missing),
+//  so this is safe to run on jobs that already have their full structure —
+//  it's the only way to retroactively add a newly-added subfolder (like the
+//  02. Structural / 03. Civil ones) to jobs booked before that existed.
+// ════════════════════════════════════════════════
+async function backfillOneDriveFolders() {
+  if (!confirm('Backfill OneDrive folder structure for all ' + allJobs.length + ' jobs? This re-checks every job\'s folder tree and adds anything missing (like the new 02. Structural / 03. Civil subfolders) — it will take a while.')) return;
+
+  var btn = document.getElementById('btn-backfill-onedrive');
+  btn.disabled = true;
+  var origLabel = btn.innerHTML;
+
+  var clientsList;
+  var token;
+  try {
+    clientsList = await loadClients();
+    token = await getGraphToken();
+  } catch (err) {
+    toast('Could not start: ' + err.message, 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  var ok = 0, skipped = 0, failed = [];
+  for (var i = 0; i < allJobs.length; i++) {
+    var job = allJobs[i];
+    btn.innerHTML = 'Backfilling ' + (i+1) + '/' + allJobs.length + '…';
+    var client = findClientByName(clientsList, job.client_name);
+    if (!client || !client.code || !job.address) { skipped++; continue; }
+    try {
+      await createJobFolders(token, client.code, client.name, job.job_no, job.address, job.booking_date || new Date().toISOString().slice(0,10));
+      ok++;
+    } catch (err) {
+      failed.push(job.job_no + ': ' + err.message);
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = origLabel;
+  toast('Backfill done — ' + ok + ' updated, ' + skipped + ' skipped (no client code/address), ' + failed.length + ' failed', failed.length ? 'err' : 'ok');
+  if (failed.length) console.error('OneDrive backfill failures:', failed);
+}
+
+// ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
 (async function() {
@@ -134,6 +180,7 @@ function clearVaultFilters() {
   renderUserInfo(user);
 
   document.getElementById('btn-refresh-vault').addEventListener('click', loadVaultPage);
+  document.getElementById('btn-backfill-onedrive').addEventListener('click', backfillOneDriveFolders);
   document.getElementById('vault-search').addEventListener('input', renderVault);
   ['vf-stage','vf-client','vf-book-from','vf-book-to','vf-comp-from','vf-comp-to'].forEach(function(id){
     document.getElementById(id).addEventListener('change', renderVault);

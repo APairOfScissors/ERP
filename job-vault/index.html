@@ -6,6 +6,7 @@
 <title>Job Vault — LDW Engineering ERP</title>
 <script>window.APP_ROOT='../';(function(){try{var t=localStorage.getItem('ldw-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/lib/msal-browser.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/app.css">
@@ -30,7 +31,7 @@
 
   <main class="main">
     <div class="page active" id="page-vault">
-      <div class="ph"><h1 class="ph-title">Job <span>Vault</span></h1><span class="ph-sub" id="vault-sub">Every job, ever</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-refresh-vault">&#x21BA; Refresh</button></div></div>
+      <div class="ph"><h1 class="ph-title">Job <span>Vault</span></h1><span class="ph-sub" id="vault-sub">Every job, ever</span><div class="ph-right"><button class="btn btn-ghost btn-sm" id="btn-backfill-onedrive">&#128193; Backfill OneDrive Folders</button><button class="btn btn-ghost btn-sm" id="btn-refresh-vault">&#x21BA; Refresh</button></div></div>
 
       <div class="toolbar">
         <div class="search-wrap"><span class="search-ico">&#128269;</span><input type="text" id="vault-search" placeholder="Search job, client, address…"></div>
@@ -56,6 +57,8 @@
 
 <script src="../shared/core.js"></script>
 <script src="../shared/nav.js"></script>
+<script src="../shared/msal.js"></script>
+<script src="../shared/onedrive.js"></script>
 <script src="job-vault.js"></script>
 </body>
 </html>

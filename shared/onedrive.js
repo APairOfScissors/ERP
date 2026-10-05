@@ -180,6 +180,16 @@ async function createJobFolders(token, clientCode, clientName, jobNo, address, b
   await ensureFolder(token, jobPath + '/01. Architecture', 'a. Working Docs');
   await ensureFolder(token, jobPath + '/01. Architecture/a. Working Docs', bookingDocsName);
 
+  var structuralSubfolders = ['a. Draft', 'b. Structural', 'c. Comps', 'd. Mark Up', 'e. Certificates and Checklists'];
+  for (var s = 0; s < structuralSubfolders.length; s++) {
+    await ensureFolder(token, jobPath + '/02. Structural', structuralSubfolders[s]);
+  }
+
+  var civilSubfolders = ['a. Draft', 'b. Drawing', 'c. Comp', 'd. Application Receipts'];
+  for (var c = 0; c < civilSubfolders.length; c++) {
+    await ensureFolder(token, jobPath + '/03. Civil', civilSubfolders[c]);
+  }
+
   await ensureFolder(token, jobPath + '/07. Communication', 'Corres In');
   await ensureFolder(token, jobPath + '/07. Communication', 'Corres Out');
 
