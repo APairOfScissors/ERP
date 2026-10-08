@@ -90,6 +90,18 @@ async function resolveYearFolderName(token, basePath, yearPrefix) {
   }, yearPrefix);
 }
 
+// A job's folder is keyed by its job number only — the address suffix after
+// it is for human readability and can vary between bookings (a client's own
+// booking email sometimes truncates or abbreviates it), so matching on the
+// full "jobNo - address" string would create a second duplicate folder for
+// the same job instead of finding the real one (this is exactly what
+// happened to 26-1020: "9 WICKHAM GROVE" vs "9 Wickham Grove, Strathmore").
+async function resolveJobFolderName(token, basePath, jobNo, address) {
+  return resolveChildFolderName(token, basePath, function(name) {
+    return name === jobNo || (name && name.indexOf(jobNo + ' -') === 0);
+  }, sanitizeFolderName(jobNo + ' - ' + address));
+}
+
 // Confirms a folder exists at parentPath/name, creating it only if missing.
 // Used for ancestor folders that are expected to already exist in Steven's OneDrive
 // (e.g. "02. Engineering Documents") so a booking never creates a duplicate of them.
@@ -163,7 +175,7 @@ async function createJobFolders(token, clientCode, clientName, jobNo, address, b
     parentPath = parentPath + '/' + yearFolderName;
   }
 
-  var jobFolderName = sanitizeFolderName(jobNo + ' - ' + address);
+  var jobFolderName = await resolveJobFolderName(token, parentPath, jobNo, address);
   await ensureFolder(token, parentPath, jobFolderName);
   var jobPath = parentPath + '/' + jobFolderName;
 
@@ -230,7 +242,8 @@ function base64ToBlob(base64, mimeType) {
 // "Open in OneDrive" so it points at exactly the same folder, without creating anything.
 async function resolveJobFolderPath(token, clientCode, clientName, jobNo, address) {
   var parentPath = await resolveJobParentPath(token, clientCode, clientName, jobNo);
-  return parentPath + '/' + sanitizeFolderName(jobNo + ' - ' + address);
+  var jobFolderName = await resolveJobFolderName(token, parentPath, jobNo, address);
+  return parentPath + '/' + jobFolderName;
 }
 
 // Looks up a folder's own OneDrive web link (used by the "Open in OneDrive" button).
