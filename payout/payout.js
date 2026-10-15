@@ -76,7 +76,7 @@ function roleCell(flag) {
 
 function renderRows(tbodyId, rows) {
   var tbody = document.getElementById(tbodyId); tbody.innerHTML = '';
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-soft);font-size:12px">— none —</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text-soft);font-size:12px">— none —</td></tr>'; return; }
   rows.forEach(function(r, i) {
     var isPaid = r.paid === 'Paid';
     var roles  = jobRoleFlags(r);
@@ -88,7 +88,8 @@ function renderRows(tbodyId, rows) {
     tr.innerHTML =
       '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
       '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
-      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+' <span style="color:var(--text-soft);font-size:10px">'+esc(r.person)+' · '+esc(rowRole(r))+'</span></td>' +
+      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
+      '<td><span class="role-badge"><span class="role-tag">'+esc(r.person)+'</span> '+esc(rowRole(r))+'</span></td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.eng)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.drafter)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.sv)+'</td>' +
