@@ -41,6 +41,13 @@ function loadPayoutPage() {
   loadPayoutData().then(function(){ renderPayout(); }).catch(function(err){ toast('Failed: ' + err.message, 'err'); });
 }
 
+// Falls back to the legacy person-based assumption for any row that somehow
+// predates the role backfill (sql/payout-role-split.sql) — defense in depth,
+// not the primary path.
+function rowRole(r) {
+  return r.role || (r.person === 'CN' ? 'Engineer' : 'SV Drafting');
+}
+
 function renderPayout() {
   var rows = personFilter === 'all' ? allRows : allRows.filter(function(r){ return r.person === personFilter; });
   var unpaid = rows.filter(function(r){ return r.paid !== 'Paid'; }).sort(function(a,b){ return (a.job_no||'').localeCompare(b.job_no||''); });
@@ -50,13 +57,17 @@ function renderPayout() {
   renderRows('payout-paid-body', paid);
   document.getElementById('payout-paid-count').textContent = '(' + paid.length + ')';
 
-  var cnUnpaidAud = allRows.filter(function(r){ return r.person === 'CN' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.fee||0); }, 0);
-  var cnUnpaidRp  = allRows.filter(function(r){ return r.person === 'CN' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
-  var lmUnpaidRp  = allRows.filter(function(r){ return r.person === 'LM' && r.paid !== 'Paid'; }).reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  // By role, not person — a CN row doing SV Drafting is paid in Rp just like
+  // an LM row would be, and shouldn't count toward the A$ stat.
+  var engUnpaid = allRows.filter(function(r){ return rowRole(r) === 'Engineer' && r.paid !== 'Paid'; });
+  var svUnpaid  = allRows.filter(function(r){ return rowRole(r) === 'SV Drafting' && r.paid !== 'Paid'; });
+  var cnUnpaidAud = engUnpaid.reduce(function(s,r){ return s + (r.fee||0); }, 0);
+  var cnUnpaidRp  = engUnpaid.reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  var lmUnpaidRp  = svUnpaid.reduce(function(s,r){ return s + (r.conv||0); }, 0);
   document.getElementById('cn-unpaid-aud').textContent = 'A$ ' + cnUnpaidAud.toFixed(2);
   document.getElementById('cn-unpaid-rp').textContent  = 'Rp ' + Math.round(cnUnpaidRp).toLocaleString('id-ID');
   document.getElementById('lm-unpaid-rp').textContent  = 'Rp ' + Math.round(lmUnpaidRp).toLocaleString('id-ID');
-  document.getElementById('lm-total-jobs').textContent = allRows.filter(function(r){ return r.person === 'LM'; }).length;
+  document.getElementById('lm-total-jobs').textContent = allRows.filter(function(r){ return rowRole(r) === 'SV Drafting'; }).length;
 }
 
 function roleCell(flag) {
@@ -69,7 +80,7 @@ function renderRows(tbodyId, rows) {
   rows.forEach(function(r, i) {
     var isPaid = r.paid === 'Paid';
     var roles  = jobRoleFlags(r);
-    var amountHtml = r.person === 'CN'
+    var amountHtml = rowRole(r) === 'Engineer'
       ? '<div style="font-family:DM Mono,monospace;font-size:11px;font-weight:600">A$ '+((r.fee||0).toFixed(2))+'</div><div style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft)">Rp '+Math.round(r.conv||0).toLocaleString('id-ID')+'</div>'
       : '<div style="font-family:DM Mono,monospace;font-size:11px;font-weight:600">Rp '+Math.round(r.conv||0).toLocaleString('id-ID')+'</div>';
     var tr = document.createElement('tr');
@@ -77,7 +88,7 @@ function renderRows(tbodyId, rows) {
     tr.innerHTML =
       '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
       '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
-      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+' <span style="color:var(--text-soft);font-size:10px">'+esc(r.person)+'</span></td>' +
+      '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+' <span style="color:var(--text-soft);font-size:10px">'+esc(r.person)+' · '+esc(rowRole(r))+'</span></td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.eng)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.drafter)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.sv)+'</td>' +
@@ -104,8 +115,8 @@ function openPayoutAmountModal(id) {
   var r = allRows.find(function(x){ return x.id === id; }); if (!r) return;
   editingRow = r;
 
-  document.getElementById('pm-title').textContent = r.job_no + ' — ' + r.person;
-  document.getElementById('pm-fee-field').style.display = r.person === 'CN' ? '' : 'none';
+  document.getElementById('pm-title').textContent = r.job_no + ' — ' + r.person + ' (' + rowRole(r) + ')';
+  document.getElementById('pm-fee-field').style.display = rowRole(r) === 'Engineer' ? '' : 'none';
   document.getElementById('pm-fee').value = r.fee != null ? r.fee : '';
   document.getElementById('pm-rp').value  = r.conv != null ? r.conv : '';
   document.getElementById('modal-payout-amt').classList.add('open');
@@ -115,7 +126,7 @@ function savePayoutAmount(newPaid) {
   if (!editingRow) return;
   var r = editingRow;
   var patch = { paid: newPaid, conv: parseFloat(document.getElementById('pm-rp').value) || 0 };
-  if (r.person === 'CN') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
+  if (rowRole(r) === 'Engineer') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
 
   var btns = [document.getElementById('pm-save-paid'), document.getElementById('pm-save-unpaid')];
   btns.forEach(function(b){ b.disabled = true; });
@@ -144,7 +155,7 @@ function savePayoutAmount(newPaid) {
     // Only unpaid rows — a row already marked Paid has a real, saved amount
     // that shouldn't be silently guessed at from whatever rate happens to be
     // in this field right now.
-    allRows.forEach(function(r){ if (r.person === 'CN' && r.paid !== 'Paid') r.conv = Math.round((r.fee||0) * rate); });
+    allRows.forEach(function(r){ if (rowRole(r) === 'Engineer' && r.paid !== 'Paid') r.conv = Math.round((r.fee||0) * rate); });
     renderPayout();
   });
 

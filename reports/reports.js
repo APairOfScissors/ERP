@@ -17,7 +17,7 @@ function clientColor(name) {
 async function loadReportData() {
   var [invoiceLogRes, payoutRes, jobsRes, historyRes] = await Promise.all([
     sb.from('invoice_log').select('date,total_amount,payment_status,client_name'),
-    sb.from('engineer_payout').select('person,fee,conv,paid'),
+    sb.from('engineer_payout').select('person,role,fee,conv,paid'),
     sb.from('jobs').select('job_progress'),
     sb.from('job_history').select('changed_at,new_value').eq('field_name', 'job_progress').eq('new_value', 'Completed')
   ]);
@@ -42,9 +42,12 @@ function renderReports(d) {
   var totalInvoiced = d.invoiceLog.reduce(function(s,r){ return s + (parseFloat(r.total_amount)||0); }, 0);
   var outstanding   = d.invoiceLog.filter(function(r){ return r.payment_status !== 'Paid'; })
                                    .reduce(function(s,r){ return s + (parseFloat(r.total_amount)||0); }, 0);
-  var cnUnpaid = d.payout.filter(function(r){ return r.person === 'CN' && r.paid !== 'Paid'; })
+  // By role, not person — e.g. a CN row doing SV Drafting is paid in Rp like
+  // an LM row would be, and shouldn't count toward the A$ Engineer figure.
+  function rowRole(r) { return r.role || (r.person === 'CN' ? 'Engineer' : 'SV Drafting'); }
+  var cnUnpaid = d.payout.filter(function(r){ return rowRole(r) === 'Engineer' && r.paid !== 'Paid'; })
                           .reduce(function(s,r){ return s + (r.fee||0); }, 0);
-  var lmUnpaid = d.payout.filter(function(r){ return r.person === 'LM' && r.paid !== 'Paid'; })
+  var lmUnpaid = d.payout.filter(function(r){ return rowRole(r) === 'SV Drafting' && r.paid !== 'Paid'; })
                           .reduce(function(s,r){ return s + (r.conv||0); }, 0);
   var activeJobs = d.jobs.filter(function(j){ return j.job_progress !== 'Completed' && j.job_progress !== 'Cancelled'; }).length;
 
