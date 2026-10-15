@@ -89,7 +89,7 @@ function renderRows(tbodyId, rows) {
       '<td class="td-mono" style="font-weight:600">'+esc(r.job_no)+'</td>' +
       '<td class="td-mono">'+esc(r.revision||'—')+'</td>' +
       '<td style="font-size:11px">'+esc(shortClient(r.client_name||''))+'</td>' +
-      '<td><span class="role-badge"><span class="role-tag">'+esc(r.person)+'</span> '+esc(rowRole(r))+'</span></td>' +
+      '<td><span class="role-badge who-badge"><span class="role-tag">'+esc(r.person)+'</span> '+esc(rowRole(r))+'</span></td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.eng)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.drafter)+'</td>' +
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.sv)+'</td>' +

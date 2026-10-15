@@ -218,6 +218,10 @@ tr.job-row.selected td{background:var(--accent-glow,var(--surface2))}
 .jcard-footer{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .role-badge{font-size:10px;font-family:'DM Mono',monospace;padding:1px 5px;border-radius:3px;display:inline-flex;align-items:center;gap:2px;background:var(--role-bg);color:var(--role-txt);border:1px solid var(--inprog-bdr)}
 .role-tag{font-weight:600;color:var(--role-tag)}
+/* Payout's Who badge reuses role-badge/role-tag but needs more breathing
+   room than Board's single-letter tags (CN/LM + a full word like "Engineer"
+   or "SV Drafting" read as cramped at the shared 2px gap/1px 5px padding). */
+.role-badge.who-badge{gap:6px;padding:3px 8px;font-size:11px}
 .jcard-due{font-size:10px;color:var(--text-soft);margin-left:auto;font-family:'DM Mono',monospace}
 .jcard-due.overdue{color:var(--overdue-txt);font-weight:600}
 .stage-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;font-family:'DM Mono',monospace}
