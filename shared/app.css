@@ -286,8 +286,9 @@ tbody tr.job-row:hover td{background:var(--surface2)}
 
 /* ---------- Payout page: inline rate input, native spinner suppressed so
    the placeholder/value isn't crowded by browser spin arrows ---------- */
-.rate-input{width:118px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;-moz-appearance:textfield}
-.rate-input::-webkit-outer-spin-button,.rate-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.no-spin{-moz-appearance:textfield}
+.no-spin::-webkit-outer-spin-button,.no-spin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rate-input{width:118px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none}
 .rate-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow,transparent)}
 
 /* ---------- Payout page mobile: hide secondary columns under 640px ---------- */

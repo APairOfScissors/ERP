@@ -83,17 +83,20 @@ function renderRows(tbodyId, rows) {
       '<td style="text-align:center;font-size:11px">'+roleCell(roles.sv)+'</td>' +
       '<td class="hide-mobile" style="font-size:10px;color:var(--text-soft)">'+esc(r.note||'—')+'</td>' +
       '<td style="text-align:right">'+amountHtml+'</td>' +
-      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-id="'+r.id+'">'+esc(r.paid)+'</button></td>';
+      '<td style="text-align:center"><button class="paid-toggle-btn" style="border-color:'+(isPaid?'var(--invoicing-bdr)':'var(--booked-bdr)')+';background:'+(isPaid?'var(--invoicing-bg)':'var(--booked-bg)')+';color:'+(isPaid?'var(--invoicing-txt)':'var(--booked-txt)')+'" data-id="'+r.id+'">'+(isPaid?'Paid':'Unpaid')+'</button></td>';
     tbody.appendChild(tr);
   });
 }
 
 // ════════════════════════════════════════════════
 //  PAYOUT AMOUNT MODAL
-//  Clicking a row's Paid/Nope button opens this instead of toggling
+//  Clicking a row's Paid/Unpaid button opens this instead of toggling
 //  directly — Steven fills in (or corrects) the actual amount right
 //  there, since the app has no other UI for setting fee/conv and it
-//  previously had to be edited straight in Supabase.
+//  previously had to be edited straight in Supabase. Both target states
+//  are offered explicitly (rather than just whichever one the row isn't
+//  currently in), since sometimes the amount needs correcting without
+//  actually changing its paid status.
 // ════════════════════════════════════════════════
 var editingRow = null;
 
@@ -101,31 +104,28 @@ function openPayoutAmountModal(id) {
   var r = allRows.find(function(x){ return x.id === id; }); if (!r) return;
   editingRow = r;
 
-  var targetPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
   document.getElementById('pm-title').textContent = r.job_no + ' — ' + r.person;
-  document.getElementById('pm-save').textContent  = 'Save & Mark ' + (targetPaid === 'Paid' ? 'Paid' : 'Unpaid');
   document.getElementById('pm-fee-field').style.display = r.person === 'CN' ? '' : 'none';
   document.getElementById('pm-fee').value = r.fee != null ? r.fee : '';
   document.getElementById('pm-rp').value  = r.conv != null ? r.conv : '';
   document.getElementById('modal-payout-amt').classList.add('open');
 }
 
-function savePayoutAmount() {
+function savePayoutAmount(newPaid) {
   if (!editingRow) return;
   var r = editingRow;
-  var newPaid = r.paid === 'Paid' ? 'Nope' : 'Paid';
   var patch = { paid: newPaid, conv: parseFloat(document.getElementById('pm-rp').value) || 0 };
   if (r.person === 'CN') patch.fee = parseFloat(document.getElementById('pm-fee').value) || 0;
 
-  var btn = document.getElementById('pm-save');
-  btn.disabled = true;
+  var btns = [document.getElementById('pm-save-paid'), document.getElementById('pm-save-unpaid')];
+  btns.forEach(function(b){ b.disabled = true; });
   updatePayoutRow(r.id, patch).then(function() {
     Object.assign(r, patch);
     closeModal('modal-payout-amt');
     toast((newPaid === 'Paid' ? 'Marked Paid' : 'Marked Unpaid'), 'ok');
     renderPayout();
   }).catch(function(err){ toast('Error: ' + err.message, 'err'); }).finally(function(){
-    btn.disabled = false;
+    btns.forEach(function(b){ b.disabled = false; });
   });
 }
 
@@ -162,7 +162,8 @@ function savePayoutAmount() {
   });
   document.getElementById('pm-close').addEventListener('click',  function(){ closeModal('modal-payout-amt'); });
   document.getElementById('pm-cancel').addEventListener('click', function(){ closeModal('modal-payout-amt'); });
-  document.getElementById('pm-save').addEventListener('click',   savePayoutAmount);
+  document.getElementById('pm-save-paid').addEventListener('click',   function(){ savePayoutAmount('Paid'); });
+  document.getElementById('pm-save-unpaid').addEventListener('click', function(){ savePayoutAmount('Nope'); });
   document.getElementById('modal-payout-amt').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('open'); });
 
   makeCollapsible(document.getElementById('payout-paid-head'), document.getElementById('payout-paid-panel-body'), false);
