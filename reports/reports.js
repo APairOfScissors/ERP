@@ -17,8 +17,8 @@ function clientColor(name) {
 async function loadReportData() {
   var [invoiceLogRes, payoutRes, jobsRes, historyRes] = await Promise.all([
     sb.from('invoice_log').select('date,total_amount,payment_status,client_name'),
-    sb.from('engineer_payout').select('person,role,fee,conv,paid'),
-    sb.from('jobs').select('job_progress'),
+    sb.from('engineer_payout').select('job_no,revision,person,fee,conv,sv_fee,paid'),
+    sb.from('jobs').select('job_no,revision,job_progress,eng,sv_drafting'),
     sb.from('job_history').select('changed_at,new_value').eq('field_name', 'job_progress').eq('new_value', 'Completed')
   ]);
   if (invoiceLogRes.error) throw invoiceLogRes.error;
@@ -42,13 +42,20 @@ function renderReports(d) {
   var totalInvoiced = d.invoiceLog.reduce(function(s,r){ return s + (parseFloat(r.total_amount)||0); }, 0);
   var outstanding   = d.invoiceLog.filter(function(r){ return r.payment_status !== 'Paid'; })
                                    .reduce(function(s,r){ return s + (parseFloat(r.total_amount)||0); }, 0);
-  // By role, not person — e.g. a CN row doing SV Drafting is paid in Rp like
-  // an LM row would be, and shouldn't count toward the A$ Engineer figure.
-  function rowRole(r) { return r.role || (r.person === 'CN' ? 'Engineer' : 'SV Drafting'); }
-  var cnUnpaid = d.payout.filter(function(r){ return rowRole(r) === 'Engineer' && r.paid !== 'Paid'; })
-                          .reduce(function(s,r){ return s + (r.fee||0); }, 0);
-  var lmUnpaid = d.payout.filter(function(r){ return rowRole(r) === 'SV Drafting' && r.paid !== 'Paid'; })
-                          .reduce(function(s,r){ return s + (r.conv||0); }, 0);
+  // Which fee applies is determined by the job's actual eng/sv_drafting
+  // assignment, not by which person the payout row belongs to — a CN row
+  // can carry both an Engineer fee and an SV Drafting fee on the same row.
+  function jobRoleFlags(r) {
+    var j = d.jobs.find(function(x){ return x.job_no === r.job_no && (x.revision||'') === (r.revision||''); });
+    if (!j) return { eng: false, sv: false };
+    return { eng: j.eng === r.person, sv: j.sv_drafting === r.person };
+  }
+  var cnUnpaid = 0, lmUnpaid = 0;
+  d.payout.filter(function(r){ return r.paid !== 'Paid'; }).forEach(function(r) {
+    var roles = jobRoleFlags(r);
+    if (roles.eng) cnUnpaid += (r.fee||0);
+    if (roles.sv)  lmUnpaid += (r.sv_fee||0);
+  });
   var activeJobs = d.jobs.filter(function(j){ return j.job_progress !== 'Completed' && j.job_progress !== 'Cancelled'; }).length;
 
   var now = new Date();

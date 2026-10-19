@@ -404,27 +404,28 @@ async function completeJobAndCreatePayouts(jobNo, revision) {
 }
 
 // CN and LM are the only roles actually paid per-job through this table —
-// SL is salaried, not paid this way. A person gets a separate row (and
-// separate paid status) per role they hold on the job, since e.g. CN doing
-// both Engineering and SV Drafting on the same job earns two distinct fees,
-// not one combined one.
+// SL is salaried, not paid this way. One row per person per job, even if
+// that person holds both the Engineer and SV Drafting roles on it — the
+// Payout page's amount modal shows both fee fields on that single row
+// (fee/conv for Engineer, sv_fee for SV Drafting) rather than splitting
+// into two rows, which made the table too cluttered to scan.
 async function createPayoutRowsForJob(jobRow) {
   var payablePersons = ['CN', 'LM'];
-  var wanted = [];
-  if (payablePersons.indexOf(jobRow.eng) > -1)          wanted.push({ person: jobRow.eng, role: 'Engineer' });
-  if (payablePersons.indexOf(jobRow.sv_drafting) > -1)  wanted.push({ person: jobRow.sv_drafting, role: 'SV Drafting' });
-  if (!wanted.length) return;
+  var peopleSet = {};
+  if (payablePersons.indexOf(jobRow.eng) > -1)         peopleSet[jobRow.eng] = true;
+  if (payablePersons.indexOf(jobRow.sv_drafting) > -1) peopleSet[jobRow.sv_drafting] = true;
+  var people = Object.keys(peopleSet);
+  if (!people.length) return;
 
-  for (var i = 0; i < wanted.length; i++) {
-    var w = wanted[i];
+  for (var i = 0; i < people.length; i++) {
+    var person = people[i];
     var { data: existing, error: checkErr } = await sb.from('engineer_payout').select('id')
-      .eq('job_no', jobRow.job_no).eq('revision', jobRow.revision || '').eq('person', w.person).eq('role', w.role);
-    if (checkErr) { toast('Payout check failed for ' + w.person + ' (' + w.role + '): ' + checkErr.message, 'err'); continue; }
-    if (existing && existing.length) continue; // already has a payout row for this job+role — don't duplicate
+      .eq('job_no', jobRow.job_no).eq('revision', jobRow.revision || '').eq('person', person);
+    if (checkErr) { toast('Payout check failed for ' + person + ': ' + checkErr.message, 'err'); continue; }
+    if (existing && existing.length) continue; // already has a payout row for this job — don't duplicate
 
     var { error: insErr } = await sb.from('engineer_payout').insert({
-      person: w.person,
-      role: w.role,
+      person: person,
       job_no: jobRow.job_no,
       revision: jobRow.revision,
       client_name: jobRow.client_name,
@@ -434,10 +435,11 @@ async function createPayoutRowsForJob(jobRow) {
       fee: null,
       rate: null,
       conv: null,
+      sv_fee: null,
       paid: 'Nope'
     });
-    if (insErr) { toast('Failed to create ' + w.person + ' (' + w.role + ') payout row: ' + insErr.message, 'err'); continue; }
-    toast(w.person + ' ' + w.role + ' payout row created', 'ok');
+    if (insErr) { toast('Failed to create ' + person + ' payout row: ' + insErr.message, 'err'); continue; }
+    toast(person + ' payout row created', 'ok');
   }
 }
 

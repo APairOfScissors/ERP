@@ -82,9 +82,18 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-head"><span class="modal-title" id="pm-title">Edit Payout</span><button class="modal-close" id="pm-close">&#x2715;</button></div>
     <div class="modal-body">
-      <div class="form-grid">
-        <div class="field" id="pm-fee-field"><label>Fee (A$)</label><input type="number" class="no-spin" id="pm-fee" step="0.01" placeholder="0.00"></div>
-        <div class="field" id="pm-rp-field"><label id="pm-rp-label">Rp</label><input type="number" class="no-spin" id="pm-rp" step="1" placeholder="0"></div>
+      <div id="pm-eng-section">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:8px">Engineer Fee</div>
+        <div class="form-grid">
+          <div class="field"><label>Fee (A$)</label><input type="number" class="no-spin" id="pm-fee" step="0.01" placeholder="0.00"></div>
+          <div class="field"><label>Rp</label><input type="number" class="no-spin" id="pm-rp" step="1" placeholder="0"></div>
+        </div>
+      </div>
+      <div id="pm-sv-section" style="margin-top:16px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:8px">SV Drafting Fee</div>
+        <div class="form-grid">
+          <div class="field" style="grid-column:span 2"><label>Rp</label><input type="number" class="no-spin" id="pm-svfee" step="1" placeholder="0"></div>
+        </div>
       </div>
     </div>
     <div class="modal-foot">
