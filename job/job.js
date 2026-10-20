@@ -216,7 +216,10 @@ async function handleJobFiles(fileList) {
 
     var commsFiles = files.filter(function(f){ return isCommsFile(f.name); });
     var otherFiles = files.filter(function(f){ return !isCommsFile(f.name); });
-    if (otherFiles.length) await uploadFilesToOneDrive(token, paths.jobPath + '/01. Architecture/a. Working Docs', otherFiles);
+    // Uploads into the same dated "Full Job Booking" subfolder createJobFolders()
+    // just ensured exists, instead of dropping loose into "a. Working Docs"
+    // alongside every other date's folder.
+    if (otherFiles.length) await uploadFilesToOneDrive(token, paths.bookingDocsPath, otherFiles);
     if (commsFiles.length) await uploadFilesToOneDrive(token, paths.jobPath + '/07. Communication/Corres In', commsFiles);
     files.forEach(function(f){ addUploadedChip(f.name); });
     toast('Uploaded ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' to OneDrive', 'ok');
