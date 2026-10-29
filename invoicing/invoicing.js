@@ -4,6 +4,9 @@
 var invJobs = [], jobsLite = [], clients = [];
 var invFilter = 'all';
 var invoiceNoMap = {}; // "jobNo||revision" -> most recent invoice_no, from invoice_log
+var selectMode = false;
+var selectedKeys = new Set();
+var pendingConsolidated = null; // { jobGroups, client, invNo, invDate } once Generate's run on a selection
 
 // ════════════════════════════════════════════════
 //  DATA
@@ -153,12 +156,28 @@ function buildInvoiceCard(job) {
   card.id = 'icard-' + job.key;
   card.style.cssText = 'background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px';
   var hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px';
-  hdr.innerHTML = '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
+  hdr.innerHTML = '<span class="sel-check"><input type="checkbox" data-sel-key="'+esc(job.key)+'"'+(selectedKeys.has(job.key)?' checked':'')+'></span>' +
+    '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:700">'+esc(job.job_no)+'</span>' +
     (job.revision ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-soft);background:var(--rule);padding:1px 6px;border-radius:3px">'+esc(job.revision)+'</span>' : '') +
     '<span style="font-size:11px;color:var(--text-soft)">'+esc(job.job_type||'')+'</span>' +
     (job.invoiceNo ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--invoicing-txt)">'+esc(job.invoiceNo)+'</span>' : '') +
     '<span style="margin-left:auto"><span class="stage-pill '+pc+'">'+esc(job.payment_status)+'</span></span>';
   card.appendChild(hdr);
+
+  // Any other jobs sharing this same invoice number were billed together as
+  // a consolidated invoice — surfaced here so it's visible without having to
+  // go looking elsewhere (the shared invoice_no is the only thing tying them
+  // together under the hood).
+  if (job.invoiceNo) {
+    var siblings = invJobs.filter(function(j){ return j.key !== job.key && j.invoiceNo === job.invoiceNo; });
+    if (siblings.length) {
+      var note = document.createElement('div');
+      note.style.cssText = 'font-size:11px;color:var(--text-soft);margin:-8px 0 12px';
+      note.textContent = 'Also on this invoice: ' + siblings.map(function(s){ return s.job_no; }).join(', ');
+      card.appendChild(note);
+    }
+  }
+
   var tbl = document.createElement('table'); tbl.style.cssText = 'width:100%;border-collapse:collapse;margin-bottom:6px';
   tbl.innerHTML = '<thead><tr><th style="text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px;font-weight:600">Description</th><th style="width:120px;text-align:left;font-size:10px;font-family:DM Mono,monospace;text-transform:uppercase;color:var(--text-soft);padding:0 0 6px 8px;font-weight:600">Amount</th><th style="width:30px"></th></tr></thead>';
   var tbody = document.createElement('tbody'); tbody.id = 'ilines-' + job.key;
@@ -196,6 +215,96 @@ function renderInvoicing() {
   var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px';
   filtered.forEach(function(job){ wrap.appendChild(buildInvoiceCard(job)); });
   c.appendChild(wrap);
+  updateConsolidateBar();
+}
+
+// ════════════════════════════════════════════════
+//  CONSOLIDATED INVOICING
+//  Selecting several jobs for the same client bundles them into one
+//  invoice (one PDF, one email, one shared invoice_no) via
+//  sendConsolidatedInvoice() — see buildInvoiceCard()'s "sel-check"
+//  checkboxes and the bulk bar in index.html.
+// ════════════════════════════════════════════════
+function setInvSelectMode(on) {
+  selectMode = on;
+  document.getElementById('page-invoicing').classList.toggle('select-on', on);
+  document.getElementById('btn-inv-select-mode').classList.toggle('active', on);
+  if (!on) { selectedKeys.clear(); pendingConsolidated = null; }
+  renderInvoicing();
+}
+
+function toggleInvSelection(key) {
+  if (selectedKeys.has(key)) selectedKeys.delete(key); else selectedKeys.add(key);
+  pendingConsolidated = null; // selection changed — any previously-generated consolidated invoice no longer matches it
+  updateConsolidateBar();
+}
+
+function updateConsolidateBar() {
+  var bar = document.getElementById('inv-bulk-bar');
+  var n = selectedKeys.size;
+  if (!selectMode || n < 2) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  var jobs = invJobs.filter(function(j){ return selectedKeys.has(j.key); });
+  var resolvedClients = jobs.map(function(j){ return resolveInvoiceClient(j).client; });
+  var allResolved = resolvedClients.every(function(c){ return !!c; });
+  var sameClient  = allResolved && new Set(resolvedClients.map(function(c){ return c.client_id; })).size === 1;
+
+  document.getElementById('inv-bulk-count').textContent = n + ' selected';
+  document.getElementById('inv-bulk-warning').textContent = sameClient ? '' : 'Selected jobs must all be for the same client to consolidate';
+  document.getElementById('inv-bulk-generate').disabled = !sameClient;
+  document.getElementById('inv-bulk-send').disabled = !pendingConsolidated;
+}
+
+async function doConsolidateGenerate() {
+  var jobs = invJobs.filter(function(j){ return selectedKeys.has(j.key); });
+  var jobGroups = [];
+  for (var i = 0; i < jobs.length; i++) {
+    var items = getInvLines(jobs[i].key);
+    if (!items.length || !items[0].desc) { toast('Every selected job needs at least one line item — check ' + jobs[i].job_no, 'err'); return; }
+    jobGroups.push({ job: jobs[i], items: items });
+  }
+  var resolved = resolveInvoiceClient(jobs[0]);
+  if (!resolved.client) { toast('Could not match these jobs to a client record', 'err'); return; }
+  if (!resolved.client.email_to) { toast('Client "' + resolved.client.name + '" has no Email To set', 'err'); return; }
+
+  var btn = document.getElementById('inv-bulk-generate');
+  btn.disabled = true;
+  try {
+    for (var i = 0; i < jobGroups.length; i++) {
+      await saveInvoiceLines(jobGroups[i].job.job_no, jobGroups[i].job.revision, jobGroups[i].items, 'Unpaid');
+    }
+    var invNo = await getNextInvoiceNo(resolved.client.code || '00');
+    pendingConsolidated = { jobGroups: jobGroups, client: resolved.client, invNo: invNo, invDate: new Date() };
+    toast('Invoice ' + invNo + ' ready for ' + jobGroups.length + ' jobs — click Send to email', 'ok');
+  } catch (err) {
+    toast('Error: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    updateConsolidateBar();
+  }
+}
+
+async function doConsolidateSend() {
+  if (!pendingConsolidated) { toast('Click Generate first', 'err'); return; }
+  var p = pendingConsolidated;
+  if (!confirm('Send consolidated invoice ' + p.invNo + ' (' + p.jobGroups.length + ' jobs) to ' + p.client.email_to + '?')) return;
+
+  var btn = document.getElementById('inv-bulk-send');
+  btn.disabled = true;
+  try {
+    await sendConsolidatedInvoice(p.jobGroups, p.client, p.invNo, p.invDate);
+    pendingConsolidated = null;
+    selectedKeys.clear();
+    for (var i = 0; i < p.jobGroups.length; i++) {
+      await refreshOneInvoiceJob(p.jobGroups[i].job.job_no, p.jobGroups[i].job.revision);
+    }
+  } catch (err) {
+    toast('Send failed: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    updateConsolidateBar();
+  }
 }
 
 // Re-fetches just this one job's invoice_data rows and swaps only its card's
@@ -307,28 +416,27 @@ async function doGenerateInv(job) {
   }
 }
 
-async function doSendInv(job, btnEl) {
-  if (!job._pendingInvNo) { toast('Click Generate first', 'err'); return; }
-  if (!confirm('Send invoice ' + job._pendingInvNo + ' to ' + job._pendingClient.email_to + '?')) return;
+// Shared by a single-job Send and a consolidated Send covering several jobs
+// for the same client. jobGroups is [{ job, items }, ...]. One combined PDF
+// and one email go out, but each job still gets its own invoice_log row (all
+// sharing invNo — that shared number is what makes a consolidated invoice
+// traceable later), its own invoice_data update, and its own copy of the PDF
+// saved into its own OneDrive invoice folder, so every job keeps its own
+// paper trail even though they were billed together.
+async function sendConsolidatedInvoice(jobGroups, client, invNo, invDate) {
+  var token   = await getGraphToken();
+  var dueDate = new Date(invDate.getTime() + 30 * 86400000);
+  var total   = jobGroups.reduce(function(s,g){ return s + g.items.reduce(function(a,i){ return a + (i.amt||0); }, 0); }, 0);
 
-  var origLabel = btnEl ? btnEl.innerHTML : null;
-  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spin"></span> Sending…'; }
-  toast('Signing in to Outlook…', 'ok');
-  try {
-    var token = await getGraphToken();
+  toast('Generating PDF…', 'ok');
+  var pdfBase64 = await generateInvoicePdf(jobGroups, client, invNo, total, invDate, dueDate);
 
-    var items    = job._pendingItems;
-    var client   = job._pendingClient;
-    var invNo    = job._pendingInvNo;
-    var invDate  = job._pendingInvDate || new Date();
-    var dueDate  = new Date(invDate.getTime() + 30 * 86400000);
-    var total    = items.reduce(function(s,i){ return s + (i.amt||0); }, 0);
+  toast('Sending email…', 'ok');
+  await sendInvoiceEmail(token, jobGroups, client, invNo, pdfBase64, total);
 
-    toast('Generating PDF…', 'ok');
-    var pdfBase64 = await generateInvoicePdf(job, client, invNo, items, total, invDate, dueDate);
-
-    toast('Sending email…', 'ok');
-    await sendInvoiceEmail(token, job, client, invNo, pdfBase64, total);
+  for (var i = 0; i < jobGroups.length; i++) {
+    var job = jobGroups[i].job;
+    var jobTotal = jobGroups[i].items.reduce(function(s,it){ return s + (it.amt||0); }, 0);
 
     // The invoice folder gets created (see onedrive.js) but nothing was ever
     // actually putting the PDF in it — it only ever went out as an email
@@ -340,23 +448,38 @@ async function doSendInv(job, btnEl) {
     } catch (pdfSaveErr) {
       // The email already went out — don't fail the whole send over a save-copy
       // problem, just surface it so Steven knows to save it manually.
-      toast('Invoice sent, but saving a copy to OneDrive failed: ' + pdfSaveErr.message, 'err');
+      toast('Invoice sent, but saving a copy to OneDrive failed for ' + job.job_no + ': ' + pdfSaveErr.message, 'err');
     }
 
     var { error: logErr } = await sb.from('invoice_log').insert({
       invoice_no: invNo, job_no: job.job_no, revision: job.revision,
       client_id: client.client_id, client_name: client.name,
-      date: invDate.toISOString().slice(0,10), total_amount: total,
+      date: invDate.toISOString().slice(0,10), total_amount: jobTotal,
       status: 'Sent', payment_status: 'Invoiced'
     });
-    if (logErr) throw logErr;
+    if (logErr) { toast('Failed to log invoice for ' + job.job_no + ': ' + logErr.message, 'err'); continue; }
 
     var { error: updErr } = await sb.from('invoice_data').update({ payment_status: 'Invoiced' })
       .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1);
-    if (updErr) throw updErr;
+    if (updErr) toast('Failed to update invoice_data for ' + job.job_no + ': ' + updErr.message, 'err');
 
     invoiceNoMap[job.key] = invNo;
-    toast('Invoice ' + invNo + ' sent to ' + client.email_to, 'ok');
+  }
+
+  toast('Invoice ' + invNo + ' sent to ' + client.email_to +
+    (jobGroups.length > 1 ? ' (' + jobGroups.length + ' jobs)' : ''), 'ok');
+}
+
+async function doSendInv(job, btnEl) {
+  if (!job._pendingInvNo) { toast('Click Generate first', 'err'); return; }
+  if (!confirm('Send invoice ' + job._pendingInvNo + ' to ' + job._pendingClient.email_to + '?')) return;
+
+  var origLabel = btnEl ? btnEl.innerHTML : null;
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spin"></span> Sending…'; }
+  toast('Signing in to Outlook…', 'ok');
+  try {
+    await sendConsolidatedInvoice([{ job: job, items: job._pendingItems }], job._pendingClient, job._pendingInvNo, job._pendingInvDate || new Date());
+    delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate;
     // Only this card's DOM gets swapped (rebuilds the button, so no need to
     // restore origLabel) — same reasoning as Save: a full re-render would
     // wipe anything mid-typing in every other card.
@@ -368,21 +491,38 @@ async function doSendInv(job, btnEl) {
 }
 
 async function doMarkPaid(job) {
-  if (!confirm('Mark as Paid?')) return;
+  // Jobs sharing this job's invoice number were billed together on a
+  // consolidated invoice — Mark Paid applies to the whole thing at once,
+  // since it was sent and gets paid as one unit, not job by job.
+  var group = job.invoiceNo
+    ? invJobs.filter(function(j){ return j.invoiceNo === job.invoiceNo; })
+    : [job];
+  var jobList = group.map(function(j){ return j.job_no; }).join(', ');
+  var confirmMsg = group.length > 1
+    ? 'Mark as Paid — this invoice covers ' + group.length + ' jobs (' + jobList + ')?'
+    : 'Mark as Paid?';
+  if (!confirm(confirmMsg)) return;
+
   try {
-    var { error: dataErr } = await sb.from('invoice_data').update({ payment_status: 'Paid' })
-      .eq('job_no', job.job_no).eq('revision', job.revision || '').eq('line_no', 1);
-    if (dataErr) throw dataErr;
+    for (var i = 0; i < group.length; i++) {
+      var g = group[i];
+      var { error: dataErr } = await sb.from('invoice_data').update({ payment_status: 'Paid' })
+        .eq('job_no', g.job_no).eq('revision', g.revision || '').eq('line_no', 1);
+      if (dataErr) throw dataErr;
 
-    var { error: logErr } = await sb.from('invoice_log').update({ status: 'Paid', payment_status: 'Paid' })
-      .eq('job_no', job.job_no).eq('revision', job.revision || '');
-    if (logErr) throw logErr;
+      var { error: logErr } = await sb.from('invoice_log').update({ status: 'Paid', payment_status: 'Paid' })
+        .eq('job_no', g.job_no).eq('revision', g.revision || '');
+      if (logErr) throw logErr;
+    }
 
-    toast('Marked as Paid', 'ok');
-    await refreshOneInvoiceJob(job.job_no, job.revision);
+    toast('Marked as Paid' + (group.length > 1 ? ' (' + group.length + ' jobs)' : ''), 'ok');
+    for (var i = 0; i < group.length; i++) await refreshOneInvoiceJob(group[i].job_no, group[i].revision);
 
-    if (confirm('Also mark this job as Completed?')) {
-      await completeJobAndCreatePayouts(job.job_no, job.revision);
+    var completeMsg = group.length > 1
+      ? 'Also mark all ' + group.length + ' jobs as Completed?'
+      : 'Also mark this job as Completed?';
+    if (confirm(completeMsg)) {
+      for (var i = 0; i < group.length; i++) await completeJobAndCreatePayouts(group[i].job_no, group[i].revision);
     }
   } catch (err) {
     toast('Error: ' + err.message, 'err');
@@ -457,6 +597,14 @@ async function createPayoutRowsForJob(jobRow) {
   document.getElementById('if-unpaid').addEventListener('click',   function(){ setInvFilter('Unpaid',this); });
   document.getElementById('if-invoiced').addEventListener('click', function(){ setInvFilter('Invoiced',this); });
   document.getElementById('inv-search').addEventListener('input',  renderInvoicing);
+
+  document.getElementById('btn-inv-select-mode').addEventListener('click', function(){ setInvSelectMode(!selectMode); });
+  document.getElementById('inv-container').addEventListener('change', function(e){
+    if (e.target.matches('input[data-sel-key]')) toggleInvSelection(e.target.getAttribute('data-sel-key'));
+  });
+  document.getElementById('inv-bulk-generate').addEventListener('click', doConsolidateGenerate);
+  document.getElementById('inv-bulk-send').addEventListener('click', doConsolidateSend);
+  document.getElementById('inv-bulk-clear').addEventListener('click', function(){ selectedKeys.clear(); pendingConsolidated = null; renderInvoicing(); });
 
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';

@@ -3,14 +3,26 @@
 //  alongside this file — this covers only the invoice-specific pieces:
 //  the PDF template, PDF rendering, and the sendMail call.)
 // ════════════════════════════════════════════════
-function buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate) {
+// jobGroups is [{ job, items }, ...] — normally one entry, but more than one
+// for a consolidated invoice covering several jobs for the same client. Each
+// group's items render under their own job-number sub-header when there's
+// more than one group, so a single-job invoice looks exactly as before.
+function buildInvoiceHTML(jobGroups, client, invNo, total, invDate, dueDate) {
   var fmtDate = function(d){ return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); };
-  var rows = items.map(function(it) {
-    return '<tr>' +
-      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222">'+esc(it.desc)+'</td>' +
-      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#666;text-align:center">GST Free</td>' +
-      '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222;text-align:right">A$ '+(it.amt||0).toFixed(2)+'</td>' +
-    '</tr>';
+  var multi = jobGroups.length > 1;
+  var jobNosStr = jobGroups.map(function(g){ return g.job.job_no + (g.job.revision ? ' Rev '+g.job.revision : ''); }).join(', ');
+  var rows = jobGroups.map(function(g) {
+    var groupHeader = multi
+      ? '<tr><td colspan="3" style="padding:10px 10px 4px;font-size:11px;font-weight:700;color:#111;border-bottom:1px solid #ccc">'+esc(g.job.job_no)+(g.job.revision?' Rev '+esc(g.job.revision):'')+'</td></tr>'
+      : '';
+    var itemRows = g.items.map(function(it) {
+      return '<tr>' +
+        '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222">'+esc(it.desc)+'</td>' +
+        '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#666;text-align:center">GST Free</td>' +
+        '<td style="padding:8px 10px;border-bottom:1px solid #ddd;font-size:12px;color:#222;text-align:right">A$ '+(it.amt||0).toFixed(2)+'</td>' +
+      '</tr>';
+    }).join('');
+    return groupHeader + itemRows;
   }).join('');
   return '' +
   '<div style="width:760px;background:#fff;color:#222;font-family:Arial,Helvetica,sans-serif;padding:40px 44px;box-sizing:border-box">' +
@@ -35,7 +47,7 @@ function buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate) {
         '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Invoice No</td><td style="padding:1px 0;text-align:right;font-weight:600;color:#222">'+esc(invNo)+'</td></tr>' +
         '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Date</td><td style="padding:1px 0;text-align:right">'+fmtDate(invDate)+'</td></tr>' +
         '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Due Date</td><td style="padding:1px 0;text-align:right">'+fmtDate(dueDate)+'</td></tr>' +
-        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999">Job No</td><td style="padding:1px 0;text-align:right">'+esc(job.job_no)+(job.revision?' Rev '+esc(job.revision):'')+'</td></tr>' +
+        '<tr><td style="padding:1px 8px 1px 0;text-align:right;color:#999;vertical-align:top">'+(multi?'Job Nos':'Job No')+'</td><td style="padding:1px 0;text-align:right;max-width:200px">'+esc(jobNosStr)+'</td></tr>' +
         '</tbody></table>' +
       '</div>' +
     '</div>' +
@@ -63,9 +75,9 @@ function buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate) {
 
 // Renders the invoice off-screen, rasterises it with html2canvas, then paginates into an A4 PDF.
 // Returns the PDF as a base64 string (no data: prefix) ready for a Graph fileAttachment.
-async function generateInvoicePdf(job, client, invNo, items, total, invDate, dueDate) {
+async function generateInvoicePdf(jobGroups, client, invNo, total, invDate, dueDate) {
   var container = document.getElementById('invoice-render');
-  container.innerHTML = buildInvoiceHTML(job, client, invNo, items, total, invDate, dueDate);
+  container.innerHTML = buildInvoiceHTML(jobGroups, client, invNo, total, invDate, dueDate);
   await new Promise(function(r){ setTimeout(r, 60); }); // let layout/fonts settle before capture
   var canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
   container.innerHTML = '';
@@ -88,16 +100,18 @@ async function generateInvoicePdf(job, client, invNo, items, total, invDate, due
   return pdf.output('datauristring').split(',')[1];
 }
 
-async function sendInvoiceEmail(token, job, client, invNo, pdfBase64, total) {
+async function sendInvoiceEmail(token, jobGroups, client, invNo, pdfBase64, total) {
   var toRecipients = [{ emailAddress: { address: client.email_to } }];
   var ccRecipients = client.email_cc ? [{ emailAddress: { address: client.email_cc } }] : [];
+  var jobNosStr = jobGroups.map(function(g){ return g.job.job_no + (g.job.revision ? ' (Rev ' + g.job.revision + ')' : ''); }).join(', ');
+  var jobWord = jobGroups.length > 1 ? 'jobs' : 'job';
   var bodyHtml =
     '<p>Dear ' + esc(client.name) + ',</p>' +
-    '<p>Please find attached invoice <strong>' + esc(invNo) + '</strong> for job ' + esc(job.job_no) + (job.revision ? ' (Rev ' + esc(job.revision) + ')' : '') + ', totalling A$ ' + total.toFixed(2) + '.</p>' +
+    '<p>Please find attached invoice <strong>' + esc(invNo) + '</strong> for ' + jobWord + ' ' + esc(jobNosStr) + ', totalling A$ ' + total.toFixed(2) + '.</p>' +
     '<p>Kind regards,<br>Steven Lionghardy<br>Lionghardy Design Works</p>';
   var payload = {
     message: {
-      subject: 'Invoice ' + invNo + ' — ' + job.job_no + ' — Lionghardy Design Works',
+      subject: 'Invoice ' + invNo + ' — ' + jobNosStr + ' — Lionghardy Design Works',
       body: { contentType: 'HTML', content: bodyHtml },
       toRecipients: toRecipients,
       ccRecipients: ccRecipients,
