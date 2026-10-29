@@ -270,14 +270,21 @@ async function doConsolidateGenerate() {
 
   var btn = document.getElementById('inv-bulk-generate');
   btn.disabled = true;
+  var previewWin = window.open('', '_blank'); // opened synchronously — see showPdfInTab()
   try {
     for (var i = 0; i < jobGroups.length; i++) {
       await saveInvoiceLines(jobGroups[i].job.job_no, jobGroups[i].job.revision, jobGroups[i].items, 'Unpaid');
     }
-    var invNo = await getNextInvoiceNo(resolved.client.code || '00');
-    pendingConsolidated = { jobGroups: jobGroups, client: resolved.client, invNo: invNo, invDate: new Date() };
-    toast('Invoice ' + invNo + ' ready for ' + jobGroups.length + ' jobs — click Send to email', 'ok');
+    var invNo   = await getNextInvoiceNo(resolved.client.code || '00');
+    var invDate = new Date();
+    var dueDate = new Date(invDate.getTime() + 30 * 86400000);
+    var total   = jobGroups.reduce(function(s,g){ return s + g.items.reduce(function(a,i){ return a + (i.amt||0); }, 0); }, 0);
+    var pdfBase64 = await generateInvoicePdf(jobGroups, resolved.client, invNo, total, invDate, dueDate);
+    pendingConsolidated = { jobGroups: jobGroups, client: resolved.client, invNo: invNo, invDate: invDate, pdfBase64: pdfBase64 };
+    showPdfInTab(previewWin, pdfBase64);
+    toast('Invoice ' + invNo + ' ready for ' + jobGroups.length + ' jobs — review the preview, then click Send', 'ok');
   } catch (err) {
+    if (previewWin && !previewWin.closed) previewWin.close();
     toast('Error: ' + err.message, 'err');
   } finally {
     btn.disabled = false;
@@ -293,7 +300,7 @@ async function doConsolidateSend() {
   var btn = document.getElementById('inv-bulk-send');
   btn.disabled = true;
   try {
-    await sendConsolidatedInvoice(p.jobGroups, p.client, p.invNo, p.invDate);
+    await sendConsolidatedInvoice(p.jobGroups, p.client, p.invNo, p.invDate, p.pdfBase64);
     pendingConsolidated = null;
     selectedKeys.clear();
     for (var i = 0; i < p.jobGroups.length; i++) {
@@ -393,25 +400,45 @@ function doSaveInv(job) {
   }).catch(function(err){ toast('Error: ' + err.message, 'err'); });
 }
 
+// Points an already-open tab at the rendered PDF. The tab must be opened
+// synchronously by the caller, before any await — opening it here (after
+// Generate's several awaited steps) would make the browser treat it as an
+// unrequested popup and block it.
+function showPdfInTab(win, pdfBase64) {
+  var url = URL.createObjectURL(base64ToBlob(pdfBase64, 'application/pdf'));
+  if (win && !win.closed) win.location.href = url; else window.open(url, '_blank');
+}
+
 async function doGenerateInv(job) {
   var items = getInvLines(job.key);
   if (!items.length || !items[0].desc) { toast('Add at least one line item', 'err'); return; }
   var resolved = resolveInvoiceClient(job);
   if (!resolved.client) { toast('Could not match this job to a client record', 'err'); return; }
   if (!resolved.client.email_to) { toast('Client "' + resolved.client.name + '" has no Email To set', 'err'); return; }
+  var previewWin = window.open('', '_blank'); // opened synchronously — see showPdfInTab()
   try {
     // A job just promoted from the Invoicing stage (loadInvoiceJobs) has no
     // invoice_data row yet — persist first, since Send only ever UPDATEs that
     // row's payment_status and would otherwise silently match nothing.
     await saveInvoiceLines(job.job_no, job.revision, items, 'Unpaid');
     var updatedJob = await refreshOneInvoiceJob(job.job_no, job.revision);
-    var invNo = await getNextInvoiceNo(resolved.client.code || '00');
+    var invNo   = await getNextInvoiceNo(resolved.client.code || '00');
+    var invDate = new Date();
+    var dueDate = new Date(invDate.getTime() + 30 * 86400000);
+    var total   = items.reduce(function(s,i){ return s + (i.amt||0); }, 0);
+    // Rendered now rather than at Send time, so there's something to actually
+    // preview before committing to emailing it — Send just reuses this PDF.
+    var pdfBase64 = await generateInvoicePdf([{ job: updatedJob, items: items }], resolved.client, invNo, total, invDate, dueDate);
+
     updatedJob._pendingInvNo   = invNo;
     updatedJob._pendingItems   = items;
     updatedJob._pendingClient  = resolved.client;
-    updatedJob._pendingInvDate = new Date();
-    toast('Invoice ' + invNo + ' ready — click Send to email', 'ok');
+    updatedJob._pendingInvDate = invDate;
+    updatedJob._pendingPdf     = pdfBase64;
+    showPdfInTab(previewWin, pdfBase64);
+    toast('Invoice ' + invNo + ' ready — review the preview, then click Send', 'ok');
   } catch (err) {
+    if (previewWin && !previewWin.closed) previewWin.close();
     toast('Error: ' + err.message, 'err');
   }
 }
@@ -423,13 +450,17 @@ async function doGenerateInv(job) {
 // traceable later), its own invoice_data update, and its own copy of the PDF
 // saved into its own OneDrive invoice folder, so every job keeps its own
 // paper trail even though they were billed together.
-async function sendConsolidatedInvoice(jobGroups, client, invNo, invDate) {
+// pdfBase64 is optional — Generate already renders it for the preview, so
+// Send normally just reuses that instead of rendering it a second time.
+async function sendConsolidatedInvoice(jobGroups, client, invNo, invDate, pdfBase64) {
   var token   = await getGraphToken();
   var dueDate = new Date(invDate.getTime() + 30 * 86400000);
   var total   = jobGroups.reduce(function(s,g){ return s + g.items.reduce(function(a,i){ return a + (i.amt||0); }, 0); }, 0);
 
-  toast('Generating PDF…', 'ok');
-  var pdfBase64 = await generateInvoicePdf(jobGroups, client, invNo, total, invDate, dueDate);
+  if (!pdfBase64) {
+    toast('Generating PDF…', 'ok');
+    pdfBase64 = await generateInvoicePdf(jobGroups, client, invNo, total, invDate, dueDate);
+  }
 
   toast('Sending email…', 'ok');
   await sendInvoiceEmail(token, jobGroups, client, invNo, pdfBase64, total);
@@ -478,8 +509,8 @@ async function doSendInv(job, btnEl) {
   if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spin"></span> Sending…'; }
   toast('Signing in to Outlook…', 'ok');
   try {
-    await sendConsolidatedInvoice([{ job: job, items: job._pendingItems }], job._pendingClient, job._pendingInvNo, job._pendingInvDate || new Date());
-    delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate;
+    await sendConsolidatedInvoice([{ job: job, items: job._pendingItems }], job._pendingClient, job._pendingInvNo, job._pendingInvDate || new Date(), job._pendingPdf);
+    delete job._pendingInvNo; delete job._pendingItems; delete job._pendingClient; delete job._pendingInvDate; delete job._pendingPdf;
     // Only this card's DOM gets swapped (rebuilds the button, so no need to
     // restore origLabel) — same reasoning as Save: a full re-render would
     // wipe anything mid-typing in every other card.
