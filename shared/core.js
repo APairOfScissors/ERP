@@ -2,7 +2,10 @@
 //  SUPABASE CONFIG
 // ════════════════════════════════════════════════
 var SUPABASE_URL = 'https://idakaomdpvvrsundufbp.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkYWthb21kcHZ2cnN1bmR1ZmJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDk1OTgsImV4cCI6MjEwMzY4NTU5OH0.Wvi3tHl5u7MiSx0LUsPA-s35czYVsQGlpu0vsZhZjX8';
+// Legacy anon JWT stopped verifying once the legacy signing secret was
+// revoked (part of closing out the Oct 2026 security incident) — this is the
+// new-format publishable key, which doesn't depend on that legacy secret.
+var SUPABASE_KEY = 'sb_publishable_IWkH6AnmEdS6xQUVRGMtmg_ABa4JG7s';
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ════════════════════════════════════════════════
