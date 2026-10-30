@@ -20,8 +20,13 @@ function appRoot() { return window.APP_ROOT || './'; }
 //  gets bounced to /my-jobs/ from every other page automatically — pass
 //  { allowRestricted: true } only from my-jobs itself to opt out of that bounce.
 // ════════════════════════════════════════════════
+// Reads from app_metadata, never user_metadata — user_metadata is editable by
+// the logged-in user themselves via the client SDK, so every RLS policy that
+// gates access on this same value (sql/migrate-person-code-to-app-metadata.sql)
+// would otherwise be bypassable by a restricted account just clearing its own
+// person_code. app_metadata can only be set via the service-role Admin API.
 function personCodeOf(user) {
-  return (user && user.user_metadata && user.user_metadata.person_code) || null;
+  return (user && user.app_metadata && user.app_metadata.person_code) || null;
 }
 
 async function requireAuth(opts) {
